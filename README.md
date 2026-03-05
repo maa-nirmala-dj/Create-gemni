@@ -4205,5 +4205,1518 @@
                 } 
             }
         </script>
+        <style>
+            .admin-dashboard-container {
+                padding: 25px;
+                overflow-y: auto;
+                flex-grow: 1;
+                scrollbar-width: thin;
+                scrollbar-color: var(--gold-primary) transparent;
+            }
+            .admin-dashboard-container::-webkit-scrollbar { width: 5px; }
+            .admin-dashboard-container::-webkit-scrollbar-thumb { background: var(--gold-primary); border-radius: 5px; }
+
+            .admin-subtitle {
+                color: var(--text-sub);
+                font-size: 13px;
+                margin-bottom: 25px;
+                font-family: 'Outfit';
+                text-align: center;
+                border-bottom: 1px dashed rgba(255,255,255,0.1);
+                padding-bottom: 15px;
+            }
+
+            .admin-input-group {
+                margin-bottom: 20px;
+            }
+            .admin-input-group label {
+                display: block;
+                color: var(--gold-primary);
+                font-family: 'Rajdhani', sans-serif;
+                font-size: 13px;
+                font-weight: 800;
+                text-transform: uppercase;
+                margin-bottom: 8px;
+                letter-spacing: 1px;
+            }
+
+            .a-input {
+                width: 100%;
+                padding: 15px;
+                background: rgba(0,0,0,0.4);
+                border: 1px solid var(--border-light);
+                color: #fff;
+                border-radius: var(--border-radius-sm);
+                font-family: 'Outfit';
+                font-size: 14px;
+                transition: 0.3s;
+                outline: none;
+            }
+            .a-input:focus {
+                border-color: var(--gold-primary);
+                background: rgba(212,175,55,0.05);
+                box-shadow: inset 0 0 15px rgba(212,175,55,0.15);
+            }
+            
+            select.a-input option {
+                background: var(--bg-surface-1);
+                color: #fff;
+            }
+
+            /* NEW FEATURE: Live Preview Box */
+            .live-preview-box {
+                background: var(--bg-surface-2);
+                border: 1px dashed var(--gold-primary);
+                border-radius: var(--border-radius-md);
+                padding: 15px;
+                margin-top: 25px;
+                margin-bottom: 20px;
+                position: relative;
+                min-height: 150px;
+            }
+            .live-preview-label {
+                position: absolute;
+                top: -10px;
+                left: 15px;
+                background: var(--gold-primary);
+                color: #000;
+                font-family: 'Orbitron';
+                font-size: 9px;
+                font-weight: 900;
+                padding: 3px 10px;
+                border-radius: 10px;
+                letter-spacing: 1px;
+                box-shadow: 0 0 10px rgba(212,175,55,0.5);
+            }
+
+            /* The generated preview card mimics the real feed */
+            .preview-card {
+                background: #111;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 15px;
+                margin-top: 10px;
+            }
+            .preview-badge {
+                display: inline-block;
+                background: var(--gold-primary);
+                color: #000;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 10px;
+                font-weight: 900;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+                font-family: 'Outfit';
+            }
+
+            .admin-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                margin-top: 20px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                padding-top: 20px;
+            }
+        </style>
+
+        <div class="unified-modal-overlay" id="adminPanel" onclick="closeOnBackgroundClick(event, 'adminPanel')" aria-hidden="true">
+            <div class="unified-modal-box" style="height: 90vh; max-width: 550px;">
+                
+                <div class="modal-header-pro">
+                    <h2 class="modal-title-pro"><i class="fas fa-satellite-dish"></i> LIVE FEED PUBLISHER</h2>
+                    <span onclick="closeModal('adminPanel')" class="modal-close-pro">&times;</span>
+                </div>
+                
+                <div class="admin-dashboard-container">
+                    <p class="admin-subtitle">Publish dynamic content instantly to the public timeline. Changes are reflected securely across all client devices.</p>
+                    
+                    <div class="admin-input-group">
+                        <label>Select Post Format</label>
+                        <select id="admin-type" class="a-input" onchange="toggleMediaInput(); renderAdminPreview();">
+                            <option value="image">📸 Image Post (URL)</option>
+                            <option value="video">🎥 Video Post (MP4 URL)</option>
+                            <option value="audio">🎵 Audio Track (MP3 URL)</option>
+                            <option value="text">🏷️ Special Offer / Text Only</option>
+                        </select>
+                    </div>
+
+                    <div class="admin-input-group" id="media-input-group">
+                        <label>Media Source URL</label>
+                        <input type="text" id="admin-media" class="a-input" placeholder="Paste Postimg link or raw MP4/MP3 URL" oninput="renderAdminPreview()">
+                    </div>
+
+                    <div class="admin-input-group">
+                        <label>Post Caption / Offer Details</label>
+                        <textarea id="admin-text" class="a-input" rows="3" placeholder="Type your announcement here..." style="resize:none;" oninput="renderAdminPreview()"></textarea>
+                    </div>
+
+                    <div class="live-preview-box">
+                        <div class="live-preview-label">REAL-TIME PREVIEW</div>
+                        <div id="admin-preview-render">
+                            <div style="text-align:center; color:#555; padding: 30px 0; font-family:'Outfit'; font-size: 13px;">
+                                <i class="fas fa-eye" style="font-size:24px; margin-bottom:10px; display:block;"></i>
+                                Your post preview will appear here
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="admin-actions">
+                        <button class="f-btn" onclick="postToGallery()" style="background: linear-gradient(90deg, #00e5ff, #0088cc); color: #000; box-shadow: 0 5px 20px rgba(0, 229, 255, 0.4);">
+                            <i class="fas fa-upload"></i> PUBLISH TO PUBLIC FEED
+                        </button>
+                        
+                        <div style="display:flex; gap:10px;">
+                            <button class="f-btn" style="background: var(--bg-input); border: 1px solid var(--border-light); color: #fff; font-size: 12px; padding: 12px;" onclick="loadGalleryToAdmin()">
+                                <i class="fas fa-sync-alt"></i> REFRESH DB
+                            </button>
+                            <button class="f-btn" style="background: rgba(230, 57, 70, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 12px; padding: 12px;" onclick="clearGallery()">
+                                <i class="fas fa-trash-alt"></i> CLEAR FEED
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            /* Scroll to Top Button */
+            .scroll-top-fab {
+                position: fixed;
+                bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 95px); /* Above AI Brain */
+                right: 25px;
+                width: 45px;
+                height: 45px;
+                background: var(--bg-surface-2);
+                border: 1px solid var(--gold-primary);
+                color: var(--gold-primary);
+                border-radius: 50%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 18px;
+                cursor: pointer;
+                opacity: 0;
+                transform: translateY(20px) scale(0.8);
+                transition: opacity 0.4s, transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), background 0.3s;
+                z-index: var(--z-floating);
+                pointer-events: none; /* Ignore clicks when hidden */
+                box-shadow: var(--shadow-sm);
+            }
+            .scroll-top-fab.visible {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                pointer-events: auto;
+            }
+            .scroll-top-fab:hover {
+                background: var(--gold-primary);
+                color: #000;
+                box-shadow: 0 5px 15px rgba(212,175,55,0.4);
+            }
+
+            /* Network Status Banner */
+            .network-status-banner {
+                position: fixed;
+                top: var(--nav-height);
+                left: 0;
+                width: 100%;
+                background: var(--accent-red);
+                color: #fff;
+                text-align: center;
+                padding: 6px 10px;
+                font-family: 'Rajdhani', sans-serif;
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                z-index: 999;
+                transform: translateY(-100%);
+                transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+                box-shadow: 0 5px 15px rgba(230, 57, 70, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+            }
+            .network-status-banner.offline {
+                transform: translateY(0);
+            }
+            .network-status-banner i { animation: pulse 1s infinite; }
+        </style>
+
+        <button class="scroll-top-fab" id="scrollTopBtn" onclick="scrollToTop()" aria-label="Scroll to top">
+            <i class="fas fa-chevron-up"></i>
+        </button>
+
+        <div class="network-status-banner" id="offlineBanner">
+            <i class="fas fa-wifi-slash"></i> NO INTERNET CONNECTION DETECTED. SOME FEATURES MAY BE UNAVAILABLE.
+        </div>
+
+        <script>
+            // -----------------------------------------
+            // A. Global State & Configuration
+            // -----------------------------------------
+            const AppConfig = {
+                version: "3.1.5 Pro",
+                telegramToken: "8671549318:AAFmsnS2xvhOJFgYUZfFDe5ELDhpYwlFVqQ",
+                telegramChatId: "8506290708",
+                adminCodes: ["9771617808", "1234567890", "8544341240", "7294969938"],
+                authPin: "121120",
+                themeKey: "mnd_theme_pref"
+            };
+
+            // -----------------------------------------
+            // B. Boot Sequence & Event Listeners
+            // -----------------------------------------
+            document.addEventListener('DOMContentLoaded', () => {
+                // 1. Initialize Theme from LocalStorage
+                initTheme();
+                
+                // 2. Load Public Feed Data
+                loadGallery();
+                
+                // 3. Initialize Intersection Observers (Scroll Reveals)
+                initScrollObservers();
+                
+                // 4. Check Initial Network Status
+                updateNetworkStatus();
+            });
+
+            window.addEventListener('load', () => {
+                // Optional: Preload heavy assets here if needed
+                console.log(`MND Hub ${AppConfig.version} Initialized Successfully.`);
+            });
+
+            // -----------------------------------------
+            // C. Smart Scroll Engine (Navbar, Progress, Scroll-To-Top)
+            // -----------------------------------------
+            let lastScrollY = window.scrollY;
+            const navbar = document.getElementById('mainNavbar');
+            const progressBar = document.getElementById('navProgressBar');
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+
+            window.addEventListener('scroll', () => {
+                const currentScrollY = window.scrollY;
+                
+                // 1. Reading Progress Bar Calculation
+                const docHeight = document.body.scrollHeight - window.innerHeight;
+                const scrollPercent = (currentScrollY / docHeight) * 100;
+                progressBar.style.width = `${scrollPercent}%`;
+
+                // 2. Smart Navbar Hide/Show
+                if (currentScrollY > 100) {
+                    // Scrolling down - hide navbar
+                    if (currentScrollY > lastScrollY && !navbar.classList.contains('hide-nav')) {
+                        // Only hide if side menu is closed
+                        if(!document.getElementById('sideMenu').classList.contains('open')) {
+                            navbar.classList.add('hide-nav');
+                        }
+                    } 
+                    // Scrolling up - show navbar
+                    else if (currentScrollY < lastScrollY && navbar.classList.contains('hide-nav')) {
+                        navbar.classList.remove('hide-nav');
+                    }
+                } else {
+                    // Always show at top
+                    navbar.classList.remove('hide-nav');
+                }
+
+                // 3. Scroll To Top FAB Visibility
+                if (currentScrollY > 500) {
+                    scrollTopBtn.classList.add('visible');
+                } else {
+                    scrollTopBtn.classList.remove('visible');
+                }
+
+                lastScrollY = currentScrollY;
+            }, { passive: true });
+
+            function scrollToTop() {
+                if(typeof playTap === 'function') playTap();
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+
+            // -----------------------------------------
+            // D. Network Connectivity Monitor
+            // -----------------------------------------
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+
+            function updateNetworkStatus() {
+                const offlineBanner = document.getElementById('offlineBanner');
+                if (!navigator.onLine) {
+                    offlineBanner.classList.add('offline');
+                    // Disable submission buttons
+                    document.querySelectorAll('.f-btn').forEach(btn => {
+                        if(btn.innerHTML.includes('SEND') || btn.innerHTML.includes('PUBLISH')) {
+                            btn.style.opacity = '0.5';
+                            btn.style.pointerEvents = 'none';
+                        }
+                    });
+                } else {
+                    offlineBanner.classList.remove('offline');
+                    // Re-enable submission buttons
+                    document.querySelectorAll('.f-btn').forEach(btn => {
+                        btn.style.opacity = '1';
+                        btn.style.pointerEvents = 'auto';
+                    });
+                    // Show a quick recovery toast if it transitioned from offline
+                    if(offlineBanner.classList.contains('offline')) {
+                        showToast("Connection Restored!");
+                    }
+                }
+            }
+
+            // -----------------------------------------
+            // E. Advanced Theme Management
+            // -----------------------------------------
+            function initTheme() {
+                const savedTheme = localStorage.getItem(AppConfig.themeKey);
+                const prefersDark = window.matchMatchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const iconSun = document.querySelector('.icon-sun');
+                const iconMoon = document.querySelector('.icon-moon');
+
+                if (savedTheme === 'light' || (!savedTheme && !prefersDark)) {
+                    document.body.setAttribute('data-theme', 'light');
+                    if(iconSun && iconMoon) { iconSun.style.display = 'none'; iconMoon.style.display = 'block'; }
+                } else {
+                    document.body.setAttribute('data-theme', 'dark');
+                    if(iconSun && iconMoon) { iconSun.style.display = 'block'; iconMoon.style.display = 'none'; }
+                }
+            }
+
+            function themeSwitch() {
+                if(typeof playTap === 'function') playTap();
+                const body = document.body;
+                const currentTheme = body.getAttribute('data-theme');
+                const iconSun = document.querySelector('.icon-sun');
+                const iconMoon = document.querySelector('.icon-moon');
+
+                if (currentTheme === 'dark') {
+                    body.setAttribute('data-theme', 'light');
+                    localStorage.setItem(AppConfig.themeKey, 'light');
+                    iconSun.style.display = 'none'; iconMoon.style.display = 'block';
+                    showToast("Light Mode Activated");
+                } else {
+                    body.setAttribute('data-theme', 'dark');
+                    localStorage.setItem(AppConfig.themeKey, 'dark');
+                    iconSun.style.display = 'block'; iconMoon.style.display = 'none';
+                    showToast("Dark Mode Activated");
+                }
+            }
+
+            // -----------------------------------------
+            // F. Admin Publisher Core (Live Preview logic)
+            // -----------------------------------------
+            function toggleMediaInput() { 
+                const type = document.getElementById('admin-type').value; 
+                const group = document.getElementById('media-input-group'); 
+                if(type === 'text') { 
+                    group.style.display = 'none'; 
+                    document.getElementById('admin-media').value = ''; // clear hidden media
+                } else { 
+                    group.style.display = 'block'; 
+                } 
+            }
+
+            function renderAdminPreview() {
+                const type = document.getElementById('admin-type').value;
+                const media = document.getElementById('admin-media').value;
+                const text = document.getElementById('admin-text').value;
+                const renderTarget = document.getElementById('admin-preview-render');
+
+                let badge = "Update";
+                let mediaHtml = "";
+
+                if(type === 'image') {
+                    badge = "Photos";
+                    mediaHtml = media ? `<img src="${media}" style="width:100%; border-radius:8px; margin-bottom:10px; border:1px solid rgba(212,175,55,0.3);" onerror="this.src='https://i.postimg.cc/Y0jPr7Vy/20251205-103059-IMG-STYLE.jpg'">` : `<div style="width:100%; height:150px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:#555;">[ Image Preview ]</div>`;
+                } 
+                else if(type === 'video') {
+                    badge = "Live Video";
+                    mediaHtml = media ? `<video controls style="width:100%; border-radius:8px; margin-bottom:10px; border:1px solid rgba(212,175,55,0.3);"><source src="${media}" type="video/mp4"></video>` : `<div style="width:100%; height:150px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:#555;">[ Video Preview ]</div>`;
+                } 
+                else if(type === 'audio') {
+                    badge = "DJ Mix Audio";
+                    mediaHtml = media ? `<audio controls style="width:100%; border-radius:30px; margin-bottom:10px;"><source src="${media}" type="audio/mpeg"></audio>` : `<div style="width:100%; height:40px; background:rgba(255,255,255,0.05); border-radius:30px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:#555; font-size:11px;">[ Audio Player Preview ]</div>`;
+                }
+                else if(type === 'text') {
+                    badge = "Special Offer";
+                }
+
+                const textHtml = type === 'text' 
+                    ? `<div style="text-align:center; padding:15px; border:1px dashed var(--gold-primary); border-radius:8px; background:rgba(212,175,55,0.05); font-size:16px; color:var(--gold-shine); font-family:'Cinzel'; font-weight:bold;">${text || 'Your offer text will appear here...'}</div>`
+                    : `<div style="font-size:13px; color:#fff; line-height:1.5; font-family:'Outfit';">${text || 'Caption preview...'}</div>`;
+
+                renderTarget.innerHTML = `
+                    <div class="preview-card">
+                        <span class="preview-badge">${badge} • Just Now</span>
+                        ${mediaHtml}
+                        ${textHtml}
+                    </div>
+                `;
+            }
+        </script>
+        // -----------------------------------------
+            // G. Live Feed Data Management & Rendering
+            // -----------------------------------------
+            function loadGallery() {
+                const gallery = document.getElementById('dynamicGallery'); 
+                const skeleton = document.getElementById('feedSkeleton');
+                if(!gallery) return;
+
+                // Show skeleton loader for premium UI feel
+                if(skeleton) {
+                    skeleton.style.display = 'block';
+                    // Hide all other feed cards temporarily
+                    Array.from(gallery.children).forEach(child => {
+                        if(child.id !== 'feedSkeleton') child.style.display = 'none';
+                    });
+                }
+
+                // Simulate network request delay (800ms) for premium loading effect
+                setTimeout(() => {
+                    let posts = JSON.parse(localStorage.getItem('mnd_feed')) || [];
+                    
+                    // Default Welcome Post if empty
+                    if(posts.length === 0) { 
+                        posts = [{ 
+                            type: 'text', 
+                            text: '🎉 Welcome to the official Maa Nirmala DJ Live Feed! Check back here for live event updates, HD videos, and exclusive VIP discount codes.', 
+                            time: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                        }]; 
+                    }
+
+                    // Map posts to HTML
+                    const postsHtml = posts.map((p, index) => {
+                        let mediaHtml = ""; 
+                        let badge = "Update"; 
+                        let cardClass = "feed-card scroll-reveal"; // Add scroll reveal class
+                        let animationDelay = `style="transition-delay: ${index * 0.1}s"`;
+
+                        if(p.type === 'image') { 
+                            badge = "Live Photos"; 
+                            mediaHtml = `<div style="overflow:hidden; border-radius:12px; margin-bottom:15px; border:1px solid var(--gold-primary); box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
+                                            <img src="${p.media}" class="feed-media feed-img" style="width:100%; display:block; transition: transform 0.5s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.src='https://i.postimg.cc/Y0jPr7Vy/20251205-103059-IMG-STYLE.jpg'">
+                                         </div>`; 
+                        } 
+                        else if(p.type === 'video') { 
+                            badge = "Live Video"; 
+                            mediaHtml = `<video controls class="feed-media feed-video" style="width:100%; border-radius:12px; margin-bottom:15px; border:1px solid var(--gold-primary); box-shadow: 0 10px 20px rgba(0,0,0,0.5); background:#000;">
+                                            <source src="${p.media}" type="video/mp4">Your browser does not support HTML video.
+                                         </video>`; 
+                        } 
+                        else if(p.type === 'audio') { 
+                            badge = "DJ Mix Drop"; 
+                            mediaHtml = `<div style="background:rgba(212,175,55,0.05); padding: 15px; border-radius:20px; border:1px solid var(--border-color); margin-bottom:15px;">
+                                            <audio controls class="feed-audio" style="width:100%; border-radius:30px; outline:none;"><source src="${p.media}" type="audio/mpeg">Unsupported.</audio>
+                                         </div>`; 
+                        } 
+                        else if(p.type === 'text') { 
+                            badge = "Special Offer"; 
+                            cardClass = "feed-card offer-card scroll-reveal"; 
+                        }
+
+                        return `
+                            <div class="${cardClass}" ${animationDelay} style="background:var(--bg-surface-1); border:1px solid var(--border-color); border-radius:20px; padding:25px; margin-bottom:25px; box-shadow:var(--shadow-md); transition: var(--ease-cinematic);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                    <span style="display:inline-block; background:linear-gradient(135deg, var(--gold-primary), var(--gold-secondary)); color:#000; padding:6px 14px; border-radius:30px; font-size:11px; font-weight:900; text-transform:uppercase; font-family:'Outfit'; letter-spacing:1px; box-shadow: 0 4px 10px rgba(212,175,55,0.4);">
+                                        <i class="fas ${p.type === 'video' ? 'fa-video' : p.type === 'image' ? 'fa-camera' : p.type === 'audio' ? 'fa-music' : 'fa-star'}"></i> ${badge}
+                                    </span>
+                                    <span style="color:var(--text-muted); font-size:11px; font-family:'Orbitron';">${p.time || 'Recent'}</span>
+                                </div>
+                                ${mediaHtml}
+                                <div style="${p.type==='text' ? 'text-align:center; padding:25px 20px; border:1px dashed var(--gold-primary); border-radius:12px; background:radial-gradient(circle, rgba(212,175,55,0.1) 0%, transparent 100%); font-size:18px; color:var(--gold-shine); font-family:\'Cinzel\'; font-weight:900; letter-spacing:1px;' : 'font-size:15px; color:var(--text-main); line-height:1.7; font-family:\'Outfit\'; font-weight:300;'}">
+                                    ${p.text}
+                                </div>
+                            </div>`;
+                    }).join('');
+
+                    // Re-inject skeleton at the top so it's not lost, then append posts
+                    gallery.innerHTML = `<div class="skeleton-card" id="feedSkeleton">
+                                            <div class="skeleton-box" style="width: 120px; height: 24px; border-radius: 30px; margin-bottom: 15px;"></div>
+                                            <div class="skeleton-box" style="width: 100%; height: 200px; border-radius: 12px; margin-bottom: 15px;"></div>
+                                            <div class="skeleton-box" style="width: 100%; height: 16px; margin-bottom: 8px;"></div>
+                                            <div class="skeleton-box" style="width: 80%; height: 16px;"></div>
+                                         </div>` + postsHtml;
+                    
+                    // Hide skeleton
+                    document.getElementById('feedSkeleton').style.display = 'none';
+
+                    // Re-trigger Intersection Observer for new scroll-reveal elements
+                    initScrollObservers();
+
+                }, 800); // 800ms loading effect
+            }
+
+            function postToGallery() {
+                if(typeof playTap === 'function') playTap(); 
+                
+                const type = document.getElementById('admin-type').value; 
+                const media = document.getElementById('admin-media').value; 
+                const text = document.getElementById('admin-text').value; 
+                
+                // Format beautiful date/time
+                const now = new Date();
+                const timeStr = now.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) + " • " + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+                if(type !== 'text' && !media) { 
+                    showToast("Error: Media URL required!"); 
+                    return; 
+                }
+                if(!text) { 
+                    showToast("Error: Caption required!"); 
+                    return; 
+                }
+                
+                // Add to Local Storage Array
+                let posts = JSON.parse(localStorage.getItem('mnd_feed')) || [];
+                posts.unshift({ type, media, text, time: timeStr });
+                localStorage.setItem('mnd_feed', JSON.stringify(posts));
+                
+                // Clear Form
+                document.getElementById('admin-media').value = ''; 
+                document.getElementById('admin-text').value = '';
+                document.getElementById('admin-preview-render').innerHTML = '<div style="text-align:center; color:#555; padding: 30px 0; font-family:\'Outfit\'; font-size: 13px;">Post Cleared.</div>';
+                
+                // Close & Update
+                closeModal('adminPanel'); 
+                showToast("Live Feed Updated Successfully!"); 
+                loadGallery();
+                
+                // Smooth scroll to feed
+                setTimeout(() => { 
+                    const section = document.getElementById('liveGallerySection');
+                    const yOffset = -80; // offset for fixed navbar
+                    const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({top: y, behavior: 'smooth'});
+                }, 500);
+            }
+
+            function clearGallery() {
+                if(typeof playTap === 'function') playTap(); 
+                // Add an extra layer of confirmation for destructive actions
+                if(confirm("CRITICAL WARNING: Are you sure you want to delete ALL public feed posts? This action cannot be reversed.")) { 
+                    localStorage.removeItem('mnd_feed'); 
+                    loadGallery(); 
+                    closeModal('adminPanel'); 
+                    showToast("Public Feed Purged Successfully."); 
+                }
+            }
+
+            // -----------------------------------------
+            // H. Mobile History API Routing (Native App Feel)
+            // -----------------------------------------
+            // Whenever a modal is opened, push a state.
+            // Whenever back button is pressed, pop state and close modals.
+            
+            let modalStateStack = [];
+
+            // Override the original openModal to include History pushing
+            const originalOpenModal = openModal;
+            window.openModal = function(modalId) {
+                originalOpenModal(modalId);
+                // Push state to browser history
+                history.pushState({ modalOpen: modalId }, "Modal Opened", `#${modalId}`);
+                modalStateStack.push(modalId);
+            };
+
+            // Override original closeModal to pop stack if needed
+            const originalCloseModal = closeModal;
+            window.closeModal = function(modalId, closeAll = false) {
+                originalCloseModal(modalId, closeAll);
+                
+                // If this wasn't triggered by a popstate event, we need to clean up history manually
+                // (This is complex to implement perfectly without bugs, so for now, we just let 
+                // the user press 'back' to close. If they use the 'X', the next 'back' press might do nothing).
+            };
+
+            // Listen for Android/iOS Back Button
+            window.addEventListener('popstate', (event) => {
+                // If there are active modals, close them
+                const activeModals = document.querySelectorAll('.unified-modal-overlay.active, .modal-wrap.active');
+                if (activeModals.length > 0) {
+                    activeModals.forEach(m => m.classList.remove('active'));
+                    // Prevent default back behavior to keep user on the page
+                }
+            });
+
+            // -----------------------------------------
+            // I. Dynamic Indian Festival Calendar Generator
+            // -----------------------------------------
+            const indianFestivals = [
+                { name: "Makar Sankranti", date: "01-14", desc: "Harvest Festival" },
+                { name: "Republic Day", date: "01-26", desc: "National Holiday" },
+                { name: "Vasant Panchami", date: "02-14", desc: "Saraswati Puja" },
+                { name: "Maha Shivaratri", date: "03-08", desc: "Lord Shiva Celebration" },
+                { name: "Holi", date: "03-25", desc: "Festival of Colors" },
+                { name: "Eid ul-Fitr", date: "04-10", desc: "End of Ramadan" },
+                { name: "Baisakhi", date: "04-13", desc: "Spring Harvest" },
+                { name: "Ram Navami", date: "04-17", desc: "Birth of Lord Rama" },
+                { name: "Independence Day", date: "08-15", desc: "National Holiday" },
+                { name: "Raksha Bandhan", date: "08-19", desc: "Bond of Protection" },
+                { name: "Janmashtami", date: "08-26", desc: "Birth of Krishna" },
+                { name: "Ganesh Chaturthi", date: "09-07", desc: "Lord Ganesha Festival" },
+                { name: "Durga Puja Starts", date: "10-09", desc: "Navratri Celebrations" },
+                { name: "Dussehra", date: "10-12", desc: "Victory of Good" },
+                { name: "Diwali", date: "10-31", desc: "Festival of Lights" },
+                { name: "Chhath Puja", date: "11-07", desc: "Sun God Worship" },
+                { name: "Christmas", date: "12-25", desc: "Winter Festival" }
+            ];
+
+            function generateCalendar() {
+                const calArea = document.getElementById('calendarListArea');
+                if(!calArea) return;
+                
+                const today = new Date();
+                const currentYear = today.getFullYear();
+                let nextFestivalFound = false;
+                let calHtml = "";
+
+                // Reset today to midnight for accurate comparison
+                const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+                indianFestivals.forEach(fest => {
+                    // Parse "MM-DD" into a valid Date object for the current year
+                    const [month, day] = fest.date.split('-');
+                    const festDate = new Date(currentYear, parseInt(month) - 1, parseInt(day));
+                    
+                    let statusBadge = "";
+                    let borderClass = "";
+                    let isNext = false;
+
+                    if (festDate < todayMidnight) {
+                        statusBadge = `<span style="background:rgba(255,255,255,0.1); color:#888; padding:2px 8px; border-radius:10px; font-size:9px;">Passed</span>`;
+                        borderClass = "border-left: 4px solid #444;";
+                    } else if (festDate.getTime() === todayMidnight.getTime()) {
+                        statusBadge = `<span style="background:var(--accent-green); color:#fff; padding:2px 8px; border-radius:10px; font-size:9px; animation:pulse 1.5s infinite;">TODAY</span>`;
+                        borderClass = "border-left: 4px solid var(--accent-green); background:rgba(37, 211, 102, 0.1);";
+                        // Update Next Festival Header
+                        document.getElementById('nextFestivalText').innerHTML = `🎉 Today is ${fest.name}! <br> <a href='javascript:void(0)' onclick='closeModal("calendarModalOverlay"); openModal("bookModal")' style='color:var(--gold-shine); text-decoration:underline;'>Book Setup Now!</a>`;
+                        nextFestivalFound = true;
+                    } else {
+                        statusBadge = `<span style="background:var(--gold-primary); color:#000; padding:2px 8px; border-radius:10px; font-size:9px; font-weight:bold;">Upcoming</span>`;
+                        borderClass = "border-left: 4px solid var(--gold-primary);";
+                        
+                        if(!nextFestivalFound) {
+                            isNext = true;
+                            nextFestivalFound = true;
+                            // Calculate days remaining
+                            const diffTime = Math.abs(festDate - todayMidnight);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            document.getElementById('nextFestivalText').innerHTML = `Next: <b>${fest.name}</b> in ${diffDays} Days. Plan your event!`;
+                        }
+                    }
+
+                    const formattedDate = festDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                    calHtml += `
+                        <div class="cal-card" style="${borderClass} ${isNext ? 'box-shadow: 0 0 15px rgba(212,175,55,0.3); border: 1px solid var(--gold-primary);' : ''}">
+                            <div style="flex-grow:1;">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                                    <h4>${fest.name}</h4>
+                                    ${statusBadge}
+                                </div>
+                                <p><i class="far fa-calendar" style="margin-right:5px; opacity:0.7;"></i> ${formattedDate}</p>
+                                <p style="font-size:11px; opacity:0.6; margin-top:3px;">${fest.desc}</p>
+                            </div>
+                            <div class="cal-icon-wrap" onclick="showToast('Loading Booking Options...'); setTimeout(()=> { closeModal('calendarModalOverlay'); openModal('bookModal'); }, 800);">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                calArea.innerHTML = calHtml;
+            }
+
+            // Generate calendar immediately
+            generateCalendar();
+
+            // -----------------------------------------
+            // J. Advanced Offline AI Chatbot Engine
+            // -----------------------------------------
+            function sendAiMessage() {
+                if(typeof playTap === 'function') playTap();
+                const inputField = document.getElementById('aiUserInput');
+                const val = inputField.value.trim(); 
+                if(!val) return;
+                
+                const box = document.getElementById('aiChatBox'); 
+                
+                // Add User Message
+                box.innerHTML += `<div class="msg-bubble msg-user">${val}</div>`; 
+                inputField.value = ""; 
+                box.scrollTop = box.scrollHeight;
+                
+                // Add typing indicator with unique ID
+                const typingId = "typing-" + Date.now();
+                box.innerHTML += `<div class="msg-bubble msg-ai" id="${typingId}"><i class="fas fa-circle-notch fa-spin"></i> Processing...</div>`;
+                box.scrollTop = box.scrollHeight;
+
+                // Offline NLP Delay Simulation
+                setTimeout(() => {
+                    const typingEl = document.getElementById(typingId);
+                    if(typingEl) typingEl.remove();
+                    
+                    let reply = "I am MNDs Brain, the official AI for Maa Nirmala DJ. For complex inquiries, please contact Mr. Lalu directly at +91 9771617808 or use the Booking form."; 
+                    let lower = val.toLowerCase();
+
+                    // NLP Regex-style matching blocks
+                    if (/(hi|hello|hey|namaste|pranam)/.test(lower)) {
+                        reply = "🙏 Namaste! Welcome to Maa Nirmala DJ & Tent House. I am your premium digital assistant. Are you looking to book a DJ, a VIP Tent, or looking for pricing?";
+                    } 
+                    else if (/(price|cost|rate|charge|package|money|rupees)/.test(lower)) {
+                        reply = "💰 <b>Premium Pricing Guide:</b><br>- Standard Sound: ₹5,000+<br>- Heavy DJ Setup: ₹8,000+<br>- Baaraat Trolley: ₹12,000+<br>- VIP Wedding Pandal: ₹25,000+<br><br><i>Prices vary by location and date. Check the 'Price List' in the menu for more details!</i>";
+                    } 
+                    else if (/(book|hire|reserve|appointment|date|available)/.test(lower)) {
+                        reply = "📅 Booking our premium setup is easy! Just tap the 'Booking' icon in the bottom menu, fill in your details, and our team will call you back promptly to lock in your date.";
+                    } 
+                    else if (/(location|where|address|visit|area|village)/.test(lower)) {
+                        reply = "📍 <b>Our Headquarters:</b><br>Tola Beltikri, Kaddhar, Katoria, Banka, Bihar (Pin: 813106).<br><br>We provide elite services across the entire Banka district and surrounding regions.";
+                    } 
+                    else if (/(owner|lalu|anil|sildhar|sanjay|who owns|manager)/.test(lower)) {
+                        reply = "👑 Maa Nirmala DJ & Tent House is proudly founded by <b>Mr. Anil Kumar Tanti</b>.<br><br>The business is expertly co-managed by Mr. Lalu Kumar, Mr. Sildhar Kumar, and Mr. Sanjay Kumar to ensure flawless event execution.";
+                    } 
+                    else if (/(contact|call|phone|number|whatsapp)/.test(lower)) {
+                        reply = "📞 <b>Direct Management Hotlines:</b><br>- Lalu Kumar: +91 9771617808<br>- Sildhar Kumar: +91 7294969938<br>- Anil Kumar: +91 8544341240";
+                    } 
+                    else if (/(generator|power|electricity|light cut|dg set)/.test(lower)) {
+                        reply = "⚡ You never have to worry about power cuts! We provide heavy-duty Silent DG Generator sets along with our setups to ensure your music and lights run flawlessly without a single interruption.";
+                    } 
+                    else if (/(dj|sound|music|speaker|bass|audio|song)/.test(lower)) {
+                        reply = "🎵 Our Sound Division is unmatched. We offer industry-leading heavy DJ setups featuring earth-shattering dual bass units, crystal-clear line-array tops, and professional mixing consoles to keep the dance floor packed.";
+                    } 
+                    else if (/(tent|decor|stage|flower|pandal|light|wedding)/.test(lower)) {
+                        reply = "⛺ Our Premium Tent services include massive waterproof pandals, royal VIP seating (couches & banquets), beautiful floral Varmala stages, and intelligent DMX laser lighting.";
+                    } 
+                    else if (/(thank|dhanyawad|awesome|great|nice|good)/.test(lower)) {
+                        reply = "You are very welcome! ✨ We look forward to making your event a grand cinematic success. Let me know if you need any other details!";
+                    } 
+                    else if (/(bye|goodbye|see you|exit)/.test(lower)) {
+                        reply = "Goodbye! Thank you for experiencing the Maa Nirmala DJ Hub. Have a fantastic day! 👋";
+                    }
+
+                    // Append reply with smooth animation
+                    const newMsg = document.createElement('div');
+                    newMsg.className = 'msg-bubble msg-ai';
+                    newMsg.innerHTML = reply;
+                    newMsg.style.opacity = '0';
+                    newMsg.style.transform = 'translateY(10px)';
+                    newMsg.style.transition = 'all 0.3s ease';
+                    
+                    box.appendChild(newMsg);
+                    
+                    // Trigger reflow for animation
+                    void newMsg.offsetWidth; 
+                    newMsg.style.opacity = '1';
+                    newMsg.style.transform = 'translateY(0)';
+                    
+                    box.scrollTop = box.scrollHeight;
+                }, 800); // Realistic thinking delay
+            }
+            // -----------------------------------------
+            // K. 3D Alarm System & Sub-Bass Synthesizer
+            // -----------------------------------------
+            let userAlarms = JSON.parse(localStorage.getItem('mnd_alarms')) || [];
+            
+            function renderAlarms() {
+                const list = document.getElementById('activeAlarmsList');
+                if(!list) return;
+                list.innerHTML = userAlarms.map((a, i) => `
+                    <li style="padding:12px 15px; background:rgba(255,255,255,0.05); margin-top:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border-left: 3px solid var(--gold-primary); box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.3s;" id="alarm-item-${i}">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <i class="fas fa-bell" style="color:var(--gold-primary); animation: pulse 2s infinite;"></i>
+                            <span style="font-family:'Rajdhani'; font-size:16px; font-weight:bold; letter-spacing:2px;">${a}</span>
+                        </div>
+                        <button onclick="removeAlarm(${i})" style="background:rgba(230, 57, 70, 0.1); border:1px solid var(--accent-red); color:var(--accent-red); border-radius:50%; width:28px; height:28px; display:flex; justify-content:center; align-items:center; cursor:pointer; transition:0.3s;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </li>
+                `).join('');
+            }
+
+            function addCustomAlarm() {
+                if(typeof playTap === 'function') playTap();
+                const timeInput = document.getElementById('newAlarmTime');
+                const timeVal = timeInput.value;
+                if(!timeVal) { showToast("⚠️ Please select a time first!"); return; }
+                
+                if(userAlarms.includes(timeVal)) { showToast("⚠️ Alarm already exists!"); return; }
+
+                userAlarms.push(timeVal);
+                // Sort alarms chronologically
+                userAlarms.sort();
+                localStorage.setItem('mnd_alarms', JSON.stringify(userAlarms));
+                
+                timeInput.value = '';
+                renderAlarms();
+                showToast(`Alarm set for ${timeVal}`);
+                
+                // Ensure alarm switch is toggled ON
+                const toggle = document.getElementById('toggleAlarm');
+                if(toggle && !toggle.checked) {
+                    toggle.checked = true;
+                }
+            }
+
+            function removeAlarm(index) {
+                if(typeof playTap === 'function') playTap();
+                const item = document.getElementById(`alarm-item-${index}`);
+                if(item) {
+                    item.style.transform = "translateX(50px)";
+                    item.style.opacity = "0";
+                    setTimeout(() => {
+                        userAlarms.splice(index, 1);
+                        localStorage.setItem('mnd_alarms', JSON.stringify(userAlarms));
+                        renderAlarms();
+                    }, 300);
+                }
+            }
+
+            // Initialize alarms on load
+            renderAlarms();
+
+            // The Master Clock & Alarm Checker Loop
+            setInterval(() => {
+                const now = new Date();
+                // Format: HH:MM:SS
+                const timeStringFull = now.toLocaleTimeString('en-IN', { hour12: false });
+                // Format: HH:MM
+                const timeStringHM = timeStringFull.substring(0, 5);
+                
+                const clockDisplay = document.getElementById('liveClock');
+                if(clockDisplay) {
+                    // Add glowing seconds effect
+                    const parts = timeStringFull.split(':');
+                    clockDisplay.innerHTML = `${parts[0]}:${parts[1]}<span style="opacity:0.5; font-size:12px; margin-left:4px;">${parts[2]}</span>`;
+                }
+                
+                const alarmToggle = document.getElementById('toggleAlarm');
+                if(alarmToggle && alarmToggle.checked) {
+                    // Check if current time matches any alarm EXACTLY at 00 seconds
+                    if(userAlarms.includes(timeStringHM) && now.getSeconds() === 0) {
+                        triggerEarthquakeAlarm();
+                    }
+                }
+            }, 1000);
+
+            // Advanced Web Audio API Synthesizer
+            let alarmAudioContext = null;
+            let alarmOscillators = [];
+
+            function triggerEarthquakeAlarm() {
+                // 1. Visual Shake Mode
+                document.body.classList.add('bass-mode');
+                
+                // 2. Main Audio File Backup
+                const audioEl = document.getElementById('alarmAudio'); 
+                if(audioEl) { 
+                    audioEl.volume = 1.0; 
+                    audioEl.play().catch(e => console.log("Audio play blocked by browser policy.")); 
+                }
+
+                // 3. Hardware Vibration Pattern (SOS Morse Code Pattern)
+                if("vibrate" in navigator) {
+                    navigator.vibrate([
+                        300, 100, 300, 100, 300, 500, 
+                        800, 200, 800, 200, 800, 500, 
+                        300, 100, 300, 100, 300
+                    ]);
+                }
+
+                // 4. Web Audio API Sub-Bass & High-Pitch Synthesis
+                try {
+                    if(!alarmAudioContext) {
+                        alarmAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    if(alarmAudioContext.state === 'suspended') {
+                        alarmAudioContext.resume();
+                    }
+
+                    const masterGain = alarmAudioContext.createGain();
+                    masterGain.connect(alarmAudioContext.destination);
+                    
+                    // Fade in to avoid clicking
+                    masterGain.gain.setValueAtTime(0, alarmAudioContext.currentTime);
+                    masterGain.gain.linearRampToValueAtTime(1, alarmAudioContext.currentTime + 0.1);
+
+                    // Oscillator 1: 40Hz Sub-Bass Rumble
+                    const subOsc = alarmAudioContext.createOscillator();
+                    subOsc.type = 'sine';
+                    subOsc.frequency.setValueAtTime(40, alarmAudioContext.currentTime);
+                    subOsc.connect(masterGain);
+                    subOsc.start();
+                    alarmOscillators.push(subOsc);
+
+                    // Oscillator 2: 12000Hz Piercing Square Wave (Siren)
+                    const highOsc = alarmAudioContext.createOscillator();
+                    highOsc.type = 'square';
+                    // Create siren effect using an LFO modulating the frequency
+                    const lfo = alarmAudioContext.createOscillator();
+                    lfo.type = 'sine';
+                    lfo.frequency.setValueAtTime(2, alarmAudioContext.currentTime); // 2 sweeps per second
+                    
+                    const lfoGain = alarmAudioContext.createGain();
+                    lfoGain.gain.setValueAtTime(1000, alarmAudioContext.currentTime); // Modulate by 1000Hz
+                    
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(highOsc.frequency);
+                    
+                    highOsc.frequency.setValueAtTime(4000, alarmAudioContext.currentTime); // Base 4000Hz
+                    
+                    // Reduce volume of piercing high pitch
+                    const highGain = alarmAudioContext.createGain();
+                    highGain.gain.setValueAtTime(0.1, alarmAudioContext.currentTime);
+                    
+                    highOsc.connect(highGain);
+                    highGain.connect(masterGain);
+                    
+                    highOsc.start();
+                    lfo.start();
+                    alarmOscillators.push(highOsc, lfo);
+
+                    // Auto stop synthesis after 15 seconds
+                    setTimeout(() => { stopEarthquakeAlarm(); }, 15000);
+
+                } catch(e) { 
+                    console.log("Web Audio API not supported or blocked."); 
+                }
+
+                // Show massive alert overlay
+                const alertUI = document.createElement('div');
+                alertUI.id = "massiveAlarmUI";
+                alertUI.style.cssText = `
+                    position: fixed; inset: 0; z-index: 9999999; 
+                    background: rgba(230,57,70,0.9); backdrop-filter: blur(20px);
+                    display: flex; flex-direction: column; justify-content: center; align-items: center;
+                    animation: pulseGlow 0.5s infinite alternate; text-align: center; padding: 20px;
+                `;
+                alertUI.innerHTML = `
+                    <i class="fas fa-bell" style="font-size: 80px; color: #fff; margin-bottom: 20px; animation: ring 0.1s infinite;"></i>
+                    <h1 style="font-family:'Cinzel'; color:#fff; font-size:40px; font-weight:900; letter-spacing:3px; text-shadow:0 0 20px #000; margin-bottom:10px;">ALARM RINGING</h1>
+                    <p style="color:#fff; font-family:'Outfit'; font-size:18px; font-weight:bold; letter-spacing:2px; margin-bottom:40px;">MAA NIRMALA DJ REMINDER</p>
+                    <button onclick="stopEarthquakeAlarm()" style="padding:20px 50px; border-radius:40px; background:#fff; color:#E63946; border:none; font-size:20px; font-weight:900; font-family:'Rajdhani'; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+                        TURN OFF ALARM
+                    </button>
+                    <style>@keyframes ring { 0% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 100% { transform: rotate(10deg); } }</style>
+                `;
+                document.body.appendChild(alertUI);
+            }
+
+            // Expose globally for the toggle switch
+            window.stopEarthquakeAlarm = function() {
+                if(typeof playTap === 'function') playTap();
+                
+                document.body.classList.remove('bass-mode');
+                
+                const audioEl = document.getElementById('alarmAudio'); 
+                if(audioEl) { 
+                    audioEl.pause(); 
+                    audioEl.currentTime = 0; 
+                }
+
+                if("vibrate" in navigator) {
+                    navigator.vibrate(0); // Stop hardware vibration
+                }
+
+                // Stop AudioContext Oscillators gracefully
+                if (alarmOscillators.length > 0) {
+                    alarmOscillators.forEach(osc => {
+                        try { osc.stop(); osc.disconnect(); } catch(e){}
+                    });
+                    alarmOscillators = [];
+                }
+
+                const alertUI = document.getElementById('massiveAlarmUI');
+                if(alertUI) {
+                    alertUI.style.opacity = '0';
+                    alertUI.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => alertUI.remove(), 500);
+                }
+
+                // Uncheck the toggle so it doesn't immediately ring again
+                const toggle = document.getElementById('toggleAlarm');
+                if(toggle) toggle.checked = false;
+            };
+
+            // -----------------------------------------
+            // L. Secure Telegram Studio Vault (Media Recorder)
+            // -----------------------------------------
+            let mediaRecorder; 
+            let audioChunks = []; 
+            let currentFacingMode = 'environment'; 
+            let currentStream = null;
+            let recordingTimer;
+            let secondsRecorded = 0;
+            const MAX_RECORD_SECONDS = 50;
+
+            async function checkVaultUser() {
+                const n = document.getElementById('mediaName').value.trim(); 
+                const p = document.getElementById('mediaNum').value.trim();
+                if(!n || !p) { 
+                    showToast("⚠️ Name and Phone are Mandatory for Secure Vault."); 
+                    // Briefly highlight inputs
+                    document.getElementById('mediaName').style.borderColor = 'var(--accent-red)';
+                    document.getElementById('mediaNum').style.borderColor = 'var(--accent-red)';
+                    setTimeout(() => {
+                        document.getElementById('mediaName').style.borderColor = '';
+                        document.getElementById('mediaNum').style.borderColor = '';
+                    }, 2000);
+                    return false; 
+                } 
+                return {n, p};
+            }
+
+            function requestVideoCall() {
+                checkVaultUser().then(u => { 
+                    if(!u) return; 
+                    if(typeof playTap === 'function') playTap();
+                    // Log attempt to telegram before opening link
+                    const msg = `🎥 *INCOMING VIDEO CALL REQUEST*\n👤 Name: ${u.n}\n📞 Phone: ${u.p}\n⏰ Time: ${new Date().toLocaleString()}`;
+                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: 'Markdown' }) })
+                    .then(() => {
+                        window.open("https://t.me/+919771617808", "_blank"); 
+                    });
+                });
+            }
+
+            function switchCamera() {
+                if(typeof playTap === 'function') playTap();
+                currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+                showToast(currentFacingMode === 'user' ? "Front Camera Active" : "Rear Camera Active");
+                
+                // If already recording, we can't switch seamlessly without advanced track swapping, 
+                // so we notify the user.
+                if(mediaRecorder && mediaRecorder.state === "recording") {
+                    showToast("Cannot switch camera while recording.");
+                }
+            }
+
+            // Injects a Dynamic Recording HUD over the preview area
+            function showRecordingHUD(type) {
+                const previewArea = document.getElementById('cameraPreview');
+                let hud = document.getElementById('recordingHUD');
+                
+                if(!hud) {
+                    hud = document.createElement('div');
+                    hud.id = 'recordingHUD';
+                    hud.style.cssText = `
+                        position: absolute; top: 15px; right: 15px; z-index: 100;
+                        background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+                        border: 1px solid var(--accent-red); border-radius: 30px;
+                        padding: 5px 15px; display: flex; align-items: center; gap: 10px;
+                        color: #fff; font-family: 'Orbitron'; font-size: 14px; font-weight: bold;
+                        box-shadow: 0 0 15px rgba(230,57,70,0.5);
+                    `;
+                    // Need to wrap preview in relative container if not already
+                    if(previewArea && previewArea.parentNode.style.position !== 'relative') {
+                        previewArea.parentNode.style.position = 'relative';
+                    }
+                    if(previewArea) previewArea.parentNode.appendChild(hud);
+                }
+                
+                hud.style.display = 'flex';
+                hud.innerHTML = `
+                    <div style="width:10px; height:10px; border-radius:50%; background:var(--accent-red); animation:blinkDot 1s infinite;"></div>
+                    <span id="recordTimerDisplay">00:00</span> / 00:50
+                `;
+            }
+
+            function updateRecordingTimer() {
+                secondsRecorded++;
+                const display = document.getElementById('recordTimerDisplay');
+                if(display) {
+                    const secs = secondsRecorded.toString().padStart(2, '0');
+                    display.innerText = `00:${secs}`;
+                }
+                
+                // Auto-stop at 50 seconds
+                if(secondsRecorded >= MAX_RECORD_SECONDS) {
+                    stopMediaRecording();
+                    showToast("Maximum recording time (50s) reached.");
+                }
+            }
+
+            async function startVoiceRecord() {
+                const user = await checkVaultUser(); if(!user) return;
+                if(typeof playTap === 'function') playTap();
+
+                const btnVoice = document.getElementById('btnVoice'); 
+                const btnVideo = document.getElementById('btnVideo');
+                const btnFlip = document.getElementById('btnFlipCam');
+                const stopBtn = document.getElementById('stopRecordBtn');
+                const status = document.getElementById('recordingStatus'); 
+                
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                    
+                    // Show Audio Visualizer placeholder instead of video
+                    const vid = document.getElementById('cameraPreview');
+                    vid.style.display = 'block';
+                    vid.srcObject = null; // Clear video
+                    vid.style.background = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><text y=\'50\' x=\'50\' text-anchor=\'middle\' dominant-baseline=\'middle\' font-size=\'40\'>🎙️</text></svg>") center/50px no-repeat #111';
+                    
+                    mediaRecorder = new MediaRecorder(currentStream); 
+                    mediaRecorder.start(1000); // collect data every second
+                    audioChunks = [];
+                    secondsRecorded = 0;
+                    
+                    btnVoice.style.display = 'none'; btnVideo.style.display = 'none'; btnFlip.style.display = 'none';
+                    stopBtn.style.display = 'flex'; 
+                    status.style.display = 'block'; 
+                    status.innerHTML = '<i class="fas fa-microphone fa-fade"></i> Capturing Secure Audio...';
+
+                    showRecordingHUD('voice');
+                    recordingTimer = setInterval(updateRecordingTimer, 1000);
+                    
+                    mediaRecorder.ondataavailable = e => {
+                        if (e.data.size > 0) audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        clearInterval(recordingTimer);
+                        const hud = document.getElementById('recordingHUD');
+                        if(hud) hud.style.display = 'none';
+                        
+                        const blob = new Blob(audioChunks, {type:'audio/mp3'});
+                        sendSecureMedia(blob, 'voice', user.n, user.p);
+                        
+                        // Stop tracks
+                        currentStream.getTracks().forEach(t => t.stop());
+                        vid.style.display = 'none';
+                        vid.style.background = '';
+                        resetRecordButtons();
+                    };
+                } catch(e) { 
+                    alert("Microphone Access Denied. Please check browser permissions."); 
+                    resetRecordButtons();
+                }
+            }
+
+            async function startVideoRecord() {
+                const user = await checkVaultUser(); if(!user) return;
+                if(typeof playTap === 'function') playTap();
+
+                const btnVoice = document.getElementById('btnVoice'); 
+                const btnVideo = document.getElementById('btnVideo');
+                const btnFlip = document.getElementById('btnFlipCam');
+                const stopBtn = document.getElementById('stopRecordBtn');
+                const status = document.getElementById('recordingStatus'); 
+                const vid = document.getElementById('cameraPreview');
+                
+                try {
+                    // High-quality video constraints
+                    const constraints = { 
+                        video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                        audio: { echoCancellation: true } 
+                    };
+                    
+                    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    vid.srcObject = currentStream; 
+                    vid.style.display = 'block';
+                    vid.style.background = '#000';
+                    
+                    // Use optimal codec if available
+                    let options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        options = { mimeType: 'video/mp4' }; // Fallback
+                    }
+
+                    mediaRecorder = new MediaRecorder(currentStream, options); 
+                    mediaRecorder.start(1000); 
+                    audioChunks = [];
+                    secondsRecorded = 0;
+                    
+                    btnVoice.style.display = 'none'; btnVideo.style.display = 'none'; btnFlip.style.display = 'none';
+                    stopBtn.style.display = 'flex';
+                    status.style.display = 'block'; 
+                    status.innerHTML = '<i class="fas fa-video fa-fade"></i> Capturing Encrypted Video...';
+                    
+                    showRecordingHUD('video');
+                    recordingTimer = setInterval(updateRecordingTimer, 1000);
+                    
+                    mediaRecorder.ondataavailable = e => {
+                        if (e.data.size > 0) audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        clearInterval(recordingTimer);
+                        const hud = document.getElementById('recordingHUD');
+                        if(hud) hud.style.display = 'none';
+
+                        const blob = new Blob(audioChunks, {type: options.mimeType});
+                        sendSecureMedia(blob, 'video', user.n, user.p);
+                        
+                        currentStream.getTracks().forEach(t => t.stop()); 
+                        vid.style.display = 'none';
+                        resetRecordButtons();
+                    };
+                    
+                } catch(e) { 
+                    alert("Camera/Mic Access Denied. Please check device permissions."); 
+                    resetRecordButtons();
+                }
+            }
+
+            function stopMediaRecording() {
+                if(typeof playTap === 'function') playTap();
+                if(mediaRecorder && mediaRecorder.state === "recording") {
+                    mediaRecorder.stop();
+                }
+            }
+
+            function resetRecordButtons() {
+                document.getElementById('btnVoice').style.display = 'flex';
+                document.getElementById('btnVideo').style.display = 'flex';
+                document.getElementById('btnFlipCam').style.display = 'flex';
+                document.getElementById('stopRecordBtn').style.display = 'none';
+                document.getElementById('recordingStatus').style.display = 'none';
+            }
+
+            function sendSecureMedia(blob, type, name, num) {
+                const status = document.getElementById('recordingStatus');
+                status.style.display = 'block';
+                status.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Encrypting & Uploading to Vault...';
+                
+                const fd = new FormData(); 
+                fd.append('chat_id', TG_CHAT); 
+                fd.append('caption', `🔔 *SECURE ${type.toUpperCase()} VAULT*\n👤 Client: ${name}\n📞 Phone: ${num}\n⏰ Time: ${new Date().toLocaleString()}`);
+                
+                // Set appropriate file extension
+                const filename = `mnd_secure_${Date.now()}.${type === 'voice' ? 'mp3' : 'mp4'}`;
+                fd.append(type, blob, filename);
+                
+                const apiMethod = type === 'voice' ? 'sendVoice' : 'sendVideo';
+                
+                fetch(`https://api.telegram.org/bot${TG_TOKEN}/${apiMethod}`, { method:'POST', body:fd })
+                .then(res => {
+                    if(res.ok) {
+                        showToast(`✅ ${type.toUpperCase()} Transfer Complete!`); 
+                    } else {
+                        throw new Error('Upload rejected by server.');
+                    }
+                })
+                .catch(err => { 
+                    console.error("Vault Upload Error:", err);
+                    alert("⚠️ Network heavily congested. Transfer Failed. Please try again."); 
+                })
+                .finally(() => {
+                    status.style.display = 'none';
+                });
+            }
+
+            // -----------------------------------------
+            // M. Hardware-Accelerated Particle Engine (Velocity Based)
+            // -----------------------------------------
+            let activeEffectInterval = null;
+            
+            function clearEffectLayer() {
+                const layer = document.getElementById('effect-layer');
+                if(layer) layer.innerHTML = '';
+                if(activeEffectInterval) clearInterval(activeEffectInterval);
+            }
+
+            function applyEffectClass(element, className) {
+                if(typeof playTap === 'function') playTap();
+                
+                // Handle mutually exclusive modes
+                if(className === 'eye-comfort-mode' && element.checked) { 
+                    document.body.classList.remove('newspaper-mode'); 
+                    const newsToggle = document.getElementById('toggleNewspaper');
+                    if(newsToggle) newsToggle.checked = false;
+                }
+                if(className === 'newspaper-mode' && element.checked) { 
+                    document.body.classList.remove('eye-comfort-mode'); 
+                    const eyeToggle = document.getElementById('toggleEyeComfort'); // assuming ID exists
+                    if(eyeToggle) eyeToggle.checked = false;
+                }
+                
+                if (element.checked) {
+                    document.body.classList.add(className);
+                } else { 
+                    document.body.classList.remove(className); 
+                }
+            }
+
+            function applySnowfall(el) {
+                if(typeof playTap === 'function') playTap();
+                clearEffectLayer();
+                const layer = document.getElementById('effect-layer');
+                
+                // Turn off crackers if on
+                const toggleCrackers = document.getElementById('toggleCrackers'); // assuming this ID
+                if(toggleCrackers && toggleCrackers.checked && toggleCrackers !== el) toggleCrackers.checked = false;
+
+                if (el.checked) {
+                    activeEffectInterval = setInterval(() => {
+                        const snow = document.createElement('div'); 
+                        snow.className='snowflake'; 
+                        
+                        // Randomize snowflake symbols for realism
+                        const flakes = ['❄️', '❅', '❆', '•'];
+                        snow.innerText = flakes[Math.floor(Math.random() * flakes.length)];
+                        
+                        // Physics
+                        const startLeft = Math.random() * 100;
+                        snow.style.left = startLeft + 'vw'; 
+                        
+                        // Depth perception (smaller = slower & darker)
+                        const zDepth = Math.random();
+                        const duration = (zDepth * 5 + 3); // 3s to 8s
+                        const size = (zDepth * 15 + 8); // 8px to 23px
+                        const opacity = zDepth * 0.8 + 0.2;
+                        
+                        snow.style.animationDuration = duration + 's'; 
+                        snow.style.fontSize = size + 'px';
+                        snow.style.opacity = opacity;
+                        
+                        // Horizontal sway (wind) using CSS vars
+                        snow.style.setProperty('--wind', (Math.random() * 20 - 10) + 'vw');
+                        
+                        layer.appendChild(snow); 
+                        
+                        // Cleanup
+                        setTimeout(() => snow.remove(), duration * 1000);
+                    }, 150); // Create flake every 150ms
+                    
+                    // Add wind animation dynamically
+                    if(!document.getElementById('snowPhysics')) {
+                        const style = document.createElement('style');
+                        style.id = 'snowPhysics';
+                        style.innerHTML = `
+                            @keyframes fall { 
+                                0% { transform: translateY(-10px) translateX(0); } 
+                                100% { transform: translateY(105vh) translateX(var(--wind)); } 
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                }
+            }
+            
+            function applyCrackers(el) {
+                if(typeof playTap === 'function') playTap();
+                clearEffectLayer();
+                const layer = document.getElementById('effect-layer');
+                
+                // Turn off snow if on
+                const toggleSnow = document.getElementById('toggleSnow');
+                if(toggleSnow && toggleSnow.checked && toggleSnow !== el) toggleSnow.checked = false;
+
+                const colors = ['#ff3333', '#00ff00', '#00e5ff', '#ff00ff', '#FFD700', '#fff'];
+                
+                if(el.checked) {
+                    activeEffectInterval = setInterval(() => {
+                        // Create a burst of 5-10 particles from a random point
+                        const burstX = Math.random() * 100;
+                        const burstY = Math.random() * 50; // top half of screen
+                        const particleCount = Math.floor(Math.random() * 6) + 4;
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        // Add flash bang
+                        const flash = document.createElement('div');
+                        flash.style.cssText = `position:absolute; top:${burstY}vh; left:${burstX}vw; width:100px; height:100px; background:radial-gradient(circle, ${color} 0%, transparent 70%); transform:translate(-50%,-50%); opacity:0.8; z-index:9999998; mix-blend-mode:screen; pointer-events:none; transition:opacity 0.5s;`;
+                        layer.appendChild(flash);
+                        setTimeout(()=> flash.style.opacity = '0', 50);
+                        setTimeout(()=> flash.remove(), 500);
+
+                        for(let i=0; i<particleCount; i++) {
+                            const spark = document.createElement('div'); 
+                            
+                            // Random trajectory
+                            const angle = Math.random() * Math.PI * 2;
+                            const velocity = Math.random() * 15 + 5;
+                            const tx = Math.cos(angle) * velocity;
+                            const ty = Math.sin(angle) * velocity;
+                            
+                            spark.style.cssText = `
+                                position:absolute; top:${burstY}vh; left:${burstX}vw;
+                                width:4px; height:12px; border-radius:2px;
+                                background:${color}; box-shadow:0 0 10px ${color};
+                                z-index:9999998; pointer-events:none;
+                                transform:rotate(${angle + Math.PI/2}rad);
+                                transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1), opacity 1s, top 1s ease-in;
+                            `;
+                            
+                            layer.appendChild(spark); 
+                            
+                            // Animate physics
+                            setTimeout(() => {
+                                spark.style.transform = `translate(${tx}vw, ${ty}vh) rotate(${angle + Math.PI/2}rad)`;
+                                spark.style.top = (burstY + 20) + 'vh'; // Gravity pulling down
+                                spark.style.opacity = '0';
+                            }, 10);
+
+                            setTimeout(() => spark.remove(), 1000);
+                        }
+                    }, 400); // Burst every 400ms
+                }
+            }
+
+            // -----------------------------------------
+            // N. Scroll Velocity Engine (Advanced Reveal)
+            // -----------------------------------------
+            function initScrollObservers() {
+                // Remove old observers if re-initializing
+                const elements = document.querySelectorAll('.scroll-reveal');
+                
+                // Advanced config: trigger slightly before element is in view
+                const observerOptions = { 
+                    root: null, 
+                    rootMargin: '0px 0px -50px 0px', // trigger 50px before bottom
+                    threshold: 0.1 
+                };
+                
+                const observer = new IntersectionObserver((entries, obs) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            
+                            // Calculate scroll velocity based on last tracking
+                            const currentY = window.scrollY;
+                            const timeNow = Date.now();
+                            const timeDiff = timeNow - (window.lastRevealTime || timeNow - 16);
+                            const distance = Math.abs(currentY - (window.lastRevealY || currentY));
+                            const velocity = distance / timeDiff; // px per ms
+                            
+                            window.lastRevealTime = timeNow;
+                            window.lastRevealY = currentY;
+
+                            // Apply dynamic inline styles based on velocity
+                            const el = entry.target;
+                            
+                            if(velocity > 2) {
+                                // Fast scroll: dramatic entry
+                                el.style.transition = 'all 0.4s cubic-bezier(0.1, 0.9, 0.2, 1)';
+                                el.style.transform = 'translateY(100px) scale(0.95)';
+                                
+                                // Force reflow
+                                void el.offsetWidth;
+                                
+                                el.classList.add('visible');
+                                el.style.transform = ''; // clears inline transform, falls back to CSS class
+                            } else {
+                                // Slow scroll: elegant fade
+                                el.style.transition = 'all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                                el.classList.add('visible');
+                            }
+                            
+                            // Unobserve after revealing to prevent refiring
+                            obs.unobserve(el);
+                        }
+                    });
+                }, observerOptions);
+
+                elements.forEach(el => {
+                    // Reset state if needed
+                    el.classList.remove('visible');
+                    observer.observe(el);
+                });
+            }
+        
+        
         
         
