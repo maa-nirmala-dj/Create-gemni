@@ -13294,4 +13294,446 @@
                 });
             }
         </script>
-        
+        <style>
+            .diffusion-wrapper {
+                background: #020202;
+                border: 1px solid #1a2233;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .diff-canvas-box {
+                width: 100%;
+                height: 240px;
+                background: #000;
+                border: 2px solid #333;
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+            #diffCanvas { width: 100%; height: 100%; display: block; mix-blend-mode: screen; }
+
+            /* Virtual Diffuser Panel (The Object) */
+            .diffuser-object {
+                position: absolute; right: 0; top: 10%; bottom: 10%; width: 30px;
+                background: #111; border-left: 2px solid var(--gold-primary);
+                display: flex; flex-direction: column; z-index: 5;
+            }
+            .diff-well { flex: 1; border-bottom: 1px solid #222; position: relative; }
+            .diff-well::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; background: var(--gold-primary); opacity: 0.3; }
+            
+            /* Varying depths for the wells (QRD math) */
+            .dw-1::after { width: 100%; } .dw-2::after { width: 30%; } .dw-3::after { width: 80%; }
+            .dw-4::after { width: 10%; } .dw-5::after { width: 90%; } .dw-6::after { width: 50%; }
+
+            .diff-controls { display: flex; gap: 10px; margin-top: 15px; }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">ACOUSTIC DIFFUSION AI</h2>
+                <div class="section-icon"><i class="fas fa-braille"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Compare standard wall reflections with MND Quadratic Residue Diffusers (QRD). Diffusion eliminates echoes by scattering energy across space and time.</p>
+
+            <div class="diffusion-wrapper">
+                <div class="diff-canvas-box" id="diffWrap">
+                    <canvas id="diffCanvas"></canvas>
+                    <div class="diffuser-object" id="diffUserObj" style="display: none;">
+                        <div class="diff-well dw-1"></div><div class="diff-well dw-2"></div><div class="diff-well dw-3"></div>
+                        <div class="diff-well dw-4"></div><div class="diff-well dw-5"></div><div class="diff-well dw-6"></div>
+                    </div>
+                    <div style="position:absolute; top:10px; left:10px; color:#fff; font-family:var(--font-tech); font-size:8px; opacity:0.5;">TOP-DOWN WAVE PROPAGATION</div>
+                </div>
+
+                <div class="diff-controls">
+                    <button class="app-btn-outline active" id="btnReflect" style="flex: 1; border-color: #fff;" onclick="setDiffMode('reflect')">FLAT REFLECTION</button>
+                    <button class="app-btn-outline" id="btnDiffuse" style="flex: 1; border-color: var(--gold-primary); color: var(--gold-primary);" onclick="setDiffMode('diffuse')">MND QRD DIFFUSION</button>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .diffraction-wrapper {
+                background: #000;
+                border: 1px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .diffract-canvas-box {
+                width: 100%;
+                height: 250px;
+                background: radial-gradient(circle at center, #05101a 0%, #000 100%);
+                border: 2px solid var(--cyan-neon);
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+            #diffractCanvas { width: 100%; height: 100%; display: block; mix-blend-mode: screen; }
+
+            .diffract-hud {
+                display: flex; justify-content: space-between; align-items: center; margin-top: 15px;
+                background: #0a0a0f; padding: 12px; border-radius: 6px; border: 1px solid #1a1a24;
+            }
+            .dh-lbl { font-family: var(--font-data); font-size: 10px; color: #888; font-weight: bold; }
+            .dh-val { font-family: var(--font-tech); font-size: 14px; color: var(--cyan-neon); font-weight: bold; }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">LASER DIFFRACTION MATRIX</h2>
+                <div class="section-icon"><i class="fas fa-th-large"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Simulate physical diffraction gratings. Adjust the grating density to split a single laser beam into a geometric matrix of points.</p>
+
+            <div class="diffraction-wrapper">
+                <div class="diffract-canvas-box" id="diffractWrap">
+                    <canvas id="diffractCanvas"></canvas>
+                    <div style="position:absolute; bottom:10px; left:10px; font-family:var(--font-tech); font-size:8px; color:var(--cyan-neon);">DMX GRATING: ACTIVE</div>
+                </div>
+
+                <div class="diffract-hud">
+                    <span class="dh-lbl">GRATING DENSITY</span>
+                    <span class="dh-val" id="diffractDensityVal">16 x 16</span>
+                </div>
+                <input type="range" class="app-slider" id="diffractSlider" min="2" max="24" value="12" style="margin-top: 15px;" oninput="updateDiffraction()">
+            </div>
+        </div>
+
+        <style>
+            .thd-wrapper {
+                background: linear-gradient(180deg, #111, #050505);
+                border: 2px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .thd-canvas-box {
+                width: 100%;
+                height: 180px;
+                background: #000;
+                border: 1px solid var(--red-alert);
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+            #thdCanvas { width: 100%; height: 100%; display: block; }
+
+            .thd-hud {
+                display: flex; justify-content: space-around; margin-top: 15px;
+                background: #0a0a0f; padding: 12px; border-radius: 8px; border: 1px solid #1a1a24;
+            }
+            .th-item { display: flex; flex-direction: column; align-items: center; }
+            .th-val { font-family: var(--font-tech); font-size: 18px; font-weight: 900; color: #fff; transition: color 0.2s; }
+            .th-lbl { font-family: var(--font-data); font-size: 9px; color: #888; text-transform: uppercase; margin-top: 4px; }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">HARMONIC DISTORTION AI</h2>
+                <div class="section-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Monitor amplifier THD. Increasing gain beyond the headroom causes 'clipping', which turns the sine wave into a speaker-killing square wave.</p>
+
+            <div class="thd-wrapper">
+                <div class="thd-canvas-box" id="thdWrap">
+                    <canvas id="thdCanvas"></canvas>
+                    <div style="position:absolute; top:5px; left:5px; color:var(--red-alert); font-family:var(--font-tech); font-size:8px; z-index:5;">OSCILLOSCOPE PROBE: CH 1</div>
+                </div>
+
+                <div class="thd-hud">
+                    <div class="th-item">
+                        <span class="th-val" id="thdPctVal">0.01%</span>
+                        <span class="th-lbl">THD + N</span>
+                    </div>
+                    <div class="th-item">
+                        <span class="th-val" id="thdStatus" style="color:#00ff00;">CLEAN</span>
+                        <span class="th-lbl">SIGNAL STATE</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <span style="font-family:var(--font-data); font-size:10px; color:#fff; font-weight:bold;">AMP INPUT GAIN (+dB)</span>
+                    <input type="range" class="app-slider" id="thdSlider" min="0" max="100" value="0" style="margin-top: 5px;" oninput="updateTHD()">
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // --- 1. ACOUSTIC DIFFUSION AI LOGIC ---
+            const dfCanvas = document.getElementById('diffCanvas');
+            let dfCtx = null;
+            const dfWrap = document.getElementById('diffWrap');
+            
+            let dfMode = 'reflect'; // reflect vs diffuse
+            let dfAnimFrame = null;
+            let dfTime = 0;
+            let dfWaves = [];
+
+            function initDiffusion() {
+                if(!dfWrap || !dfCanvas) return;
+                dfCanvas.width = dfWrap.clientWidth;
+                dfCanvas.height = dfWrap.clientHeight;
+                dfCtx = dfCanvas.getContext('2d');
+                if(!dfAnimFrame) animateDiffusion();
+            }
+            window.addEventListener('resize', initDiffusion);
+            setTimeout(initDiffusion, 500);
+
+            function setDiffMode(mode) {
+                if(typeof playTap === 'function') playTap();
+                dfMode = mode;
+                dfWaves = []; // Reset waves
+                
+                document.getElementById('btnReflect').className = 'app-btn-outline' + (mode === 'reflect' ? ' active' : '');
+                document.getElementById('btnDiffuse').className = 'app-btn-outline' + (mode === 'diffuse' ? ' active' : '');
+                document.getElementById('diffUserObj').style.display = mode === 'diffuse' ? 'flex' : 'none';
+                
+                if(navigator.vibrate) navigator.vibrate(20);
+            }
+
+            function animateDiffusion() {
+                dfAnimFrame = requestAnimationFrame(animateDiffusion);
+                if(!dfCtx) return;
+
+                dfCtx.fillStyle = 'rgba(0,0,0,0.1)';
+                dfCtx.fillRect(0,0, dfCanvas.width, dfCanvas.height);
+
+                dfTime++;
+
+                // Spawn a new "Wavefront" every 60 frames
+                if(dfTime % 60 === 0) {
+                    dfWaves.push({ x: 0, life: 1.0, isReflected: false });
+                }
+
+                dfCtx.lineWidth = 2;
+
+                for(let i = dfWaves.length - 1; i >= 0; i--) {
+                    let w = dfWaves[i];
+                    
+                    if(!w.isReflected) {
+                        // Move wave towards the right wall
+                        w.x += 3;
+                        dfCtx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+                        dfCtx.beginPath();
+                        dfCtx.moveTo(w.x, 0);
+                        dfCtx.lineTo(w.x, dfCanvas.height);
+                        dfCtx.stroke();
+
+                        // Collision with right wall (diffuser)
+                        if(w.x > dfCanvas.width - 30) {
+                            w.isReflected = true;
+                            if(dfMode === 'diffuse') {
+                                // DIFFUSION LOGIC: Break into many small particles
+                                w.shards = [];
+                                for(let j=0; j<20; j++) {
+                                    w.shards.push({
+                                        x: w.x,
+                                        y: Math.random() * dfCanvas.height,
+                                        vx: -(Math.random() * 2 + 1),
+                                        vy: (Math.random() - 0.5) * 4,
+                                        life: 1.0
+                                    });
+                                }
+                            } else {
+                                // REFLECTION LOGIC: Stay as a single wave moving back
+                                w.vx = -3;
+                            }
+                        }
+                    } else {
+                        // Draw Reflected State
+                        if(dfMode === 'diffuse') {
+                            w.shards.forEach(s => {
+                                s.x += s.vx;
+                                s.y += s.vy;
+                                s.life -= 0.01;
+                                dfCtx.fillStyle = `rgba(212, 175, 55, ${s.life})`;
+                                dfCtx.fillRect(s.x, s.y, 2, 2);
+                            });
+                            // Remove if all shards dead
+                            if(w.shards[0].life <= 0) dfWaves.splice(i, 1);
+                        } else {
+                            w.x += w.vx;
+                            w.life -= 0.01;
+                            dfCtx.strokeStyle = `rgba(255, 255, 255, ${w.life})`;
+                            dfCtx.beginPath();
+                            dfCtx.moveTo(w.x, 0);
+                            dfCtx.lineTo(w.x, dfCanvas.height);
+                            dfCtx.stroke();
+                            if(w.life <= 0) dfWaves.splice(i, 1);
+                        }
+                    }
+                }
+            }
+
+
+            // --- 2. DMX DIFFRACTION GRATING LOGIC ---
+            const dCanvas = document.getElementById('diffractCanvas');
+            let dCtx = null;
+            const dWrap = document.getElementById('diffractWrap');
+            
+            let dAnimFrame = null;
+            let dTime = 0;
+            let dDensity = 12;
+
+            function initDiffraction() {
+                if(!dWrap || !dCanvas) return;
+                dCanvas.width = dWrap.clientWidth;
+                dCanvas.height = dWrap.clientHeight;
+                dCtx = dCanvas.getContext('2d');
+                if(!dAnimFrame) animateDiffraction();
+            }
+            window.addEventListener('resize', initDiffraction);
+            setTimeout(initDiffraction, 800);
+
+            function updateDiffraction() {
+                dDensity = parseInt(document.getElementById('diffractSlider').value);
+                document.getElementById('diffractDensityVal').innerText = `${dDensity} x ${dDensity}`;
+            }
+
+            function animateDiffraction() {
+                dAnimFrame = requestAnimationFrame(animateDiffraction);
+                if(!dCtx) return;
+
+                dCtx.fillStyle = 'rgba(0,0,0,0.2)';
+                dCtx.fillRect(0,0, dCanvas.width, dCanvas.height);
+                
+                dTime += 0.02;
+
+                const cw = dCanvas.width;
+                const ch = dCanvas.height;
+                const cx = cw / 2;
+                const cy = ch / 2;
+
+                dCtx.globalCompositeOperation = 'lighter';
+                
+                // Draw Geometric Matrix of dots
+                // Spacing decreases as density increases
+                const spacing = Math.min(cw, ch) / (dDensity + 1);
+
+                for(let ix = -dDensity/2; ix <= dDensity/2; ix++) {
+                    for(let iy = -dDensity/2; iy <= dDensity/2; iy++) {
+                        
+                        // Apply rotation to the whole grid
+                        const rx = ix * Math.cos(dTime) - iy * Math.sin(dTime);
+                        const ry = ix * Math.sin(dTime) + iy * Math.cos(dTime);
+
+                        const px = cx + rx * spacing;
+                        const py = cy + ry * spacing;
+
+                        // Only draw if within bounds
+                        if(px > 0 && px < cw && py > 0 && py < ch) {
+                            dCtx.beginPath();
+                            dCtx.arc(px, py, 2, 0, Math.PI*2);
+                            dCtx.fillStyle = 'var(--cyan-neon)';
+                            dCtx.shadowBlur = 10;
+                            dCtx.shadowColor = 'var(--cyan-neon)';
+                            dCtx.fill();
+                        }
+                    }
+                }
+                
+                dCtx.shadowBlur = 0;
+                dCtx.globalCompositeOperation = 'source-over';
+            }
+
+
+            // --- 3. TOTAL HARMONIC DISTORTION (THD) LOGIC ---
+            const thCanvas = document.getElementById('thdCanvas');
+            let thCtx = null;
+            const thWrap = document.getElementById('thdWrap');
+            
+            let thAnimFrame = null;
+            let thTime = 0;
+            let thGain = 0; // 0 to 100
+
+            function initTHD() {
+                if(!thWrap || !thCanvas) return;
+                thCanvas.width = thWrap.clientWidth;
+                thCanvas.height = thWrap.clientHeight;
+                thCtx = thCanvas.getContext('2d');
+                if(!thAnimFrame) animateTHD();
+            }
+            window.addEventListener('resize', initTHD);
+            setTimeout(initTHD, 1000);
+
+            function updateTHD() {
+                thGain = parseInt(document.getElementById('thdSlider').value);
+                
+                const pctVal = document.getElementById('thdPctVal');
+                const statVal = document.getElementById('thdStatus');
+                
+                // Math: THD grows exponentially as gain hits the ceiling
+                let thdRaw = 0.01;
+                if(thGain > 50) {
+                    // Start distorting
+                    thdRaw = 0.01 + Math.pow((thGain - 50) / 10, 2);
+                }
+                
+                pctVal.innerText = `${thdRaw.toFixed(2)}%`;
+
+                if(thdRaw > 10) {
+                    statVal.innerText = "CLIPPING";
+                    statVal.style.color = "var(--red-alert)";
+                    if(navigator.vibrate) navigator.vibrate(10);
+                } else if(thdRaw > 1) {
+                    statVal.innerText = "WARM";
+                    statVal.style.color = "var(--gold-primary)";
+                } else {
+                    statVal.innerText = "CLEAN";
+                    statVal.style.color = "#00ff00";
+                }
+            }
+
+            function animateTHD() {
+                thAnimFrame = requestAnimationFrame(animateTHD);
+                if(!thCtx) return;
+
+                thCtx.fillStyle = '#050505';
+                thCtx.fillRect(0,0, thCanvas.width, thCanvas.height);
+
+                thTime += 0.15;
+
+                const w = thCanvas.width;
+                const h = thCanvas.height;
+                const midY = h / 2;
+                
+                // Baseline Amplitude
+                let amp = h * 0.35;
+                
+                thCtx.beginPath();
+                thCtx.strokeStyle = '#00ff00';
+                thCtx.lineWidth = 3;
+
+                for(let x=0; x<w; x+=2) {
+                    let sine = Math.sin(x * 0.05 - thTime);
+                    
+                    // APPLY DISTORTION MATH (Soft & Hard Clipping)
+                    // We apply gain to the sine
+                    let val = sine * (1 + thGain / 20);
+                    
+                    // Ceiling (Hard Clip at 1.0/-1.0)
+                    if(val > 1.0) val = 1.0;
+                    if(val < -1.0) val = -1.0;
+                    
+                    // Soften the corners slightly if not maxed
+                    if(thGain < 90) {
+                       // Simple soft clip approximation
+                       val = Math.tanh(val * 1.5) / 1.5; 
+                    }
+
+                    const py = midY + (val * amp);
+                    
+                    if(x === 0) thCtx.moveTo(x, py);
+                    else thCtx.lineTo(x, py);
+                }
+                
+                // Color shift based on distortion
+                if(thGain > 70) thCtx.strokeStyle = 'var(--red-alert)';
+                else if(thGain > 40) thCtx.strokeStyle = 'var(--gold-primary)';
+                else thCtx.strokeStyle = '#00ff00';
+                
+                thCtx.stroke();
+            }
+        </script>
