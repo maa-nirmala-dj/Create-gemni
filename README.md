@@ -13395,7 +13395,7 @@
 
                 <div class="diffract-hud">
                     <span class="dh-lbl">GRATING DENSITY</span>
-                    <span class="dh-val" id="diffractDensityVal">16 x 16</span>
+                    <span class="dh-val" id="diffractDensityVal">12 x 12</span>
                 </div>
                 <input type="range" class="app-slider" id="diffractSlider" min="2" max="24" value="12" style="margin-top: 15px;" oninput="updateDiffraction()">
             </div>
@@ -13497,7 +13497,7 @@
                 dfAnimFrame = requestAnimationFrame(animateDiffusion);
                 if(!dfCtx) return;
 
-                dfCtx.fillStyle = 'rgba(0,0,0,0.1)';
+                dfCtx.fillStyle = 'rgba(0,0,0,0.15)';
                 dfCtx.fillRect(0,0, dfCanvas.width, dfCanvas.height);
 
                 dfTime++;
@@ -13514,8 +13514,8 @@
                     
                     if(!w.isReflected) {
                         // Move wave towards the right wall
-                        w.x += 3;
-                        dfCtx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+                        w.x += 4;
+                        dfCtx.strokeStyle = 'rgba(0, 229, 255, 0.7)';
                         dfCtx.beginPath();
                         dfCtx.moveTo(w.x, 0);
                         dfCtx.lineTo(w.x, dfCanvas.height);
@@ -13527,18 +13527,20 @@
                             if(dfMode === 'diffuse') {
                                 // DIFFUSION LOGIC: Break into many small particles
                                 w.shards = [];
-                                for(let j=0; j<20; j++) {
+                                for(let j=0; j<25; j++) {
                                     w.shards.push({
                                         x: w.x,
                                         y: Math.random() * dfCanvas.height,
-                                        vx: -(Math.random() * 2 + 1),
-                                        vy: (Math.random() - 0.5) * 4,
+                                        vx: -(Math.random() * 3 + 1),
+                                        vy: (Math.random() - 0.5) * 5,
                                         life: 1.0
                                     });
                                 }
+                                // Play physical sound if engine on
+                                if(typeof playSynth === 'function' && window.isEngineOn) playSynth('hihatC', null);
                             } else {
                                 // REFLECTION LOGIC: Stay as a single wave moving back
-                                w.vx = -3;
+                                w.vx = -4;
                             }
                         }
                     } else {
@@ -13547,16 +13549,18 @@
                             w.shards.forEach(s => {
                                 s.x += s.vx;
                                 s.y += s.vy;
-                                s.life -= 0.01;
+                                s.life -= 0.015;
                                 dfCtx.fillStyle = `rgba(212, 175, 55, ${s.life})`;
-                                dfCtx.fillRect(s.x, s.y, 2, 2);
+                                dfCtx.beginPath();
+                                dfCtx.arc(s.x, s.y, 2, 0, Math.PI*2);
+                                dfCtx.fill();
                             });
                             // Remove if all shards dead
                             if(w.shards[0].life <= 0) dfWaves.splice(i, 1);
                         } else {
                             w.x += w.vx;
                             w.life -= 0.01;
-                            dfCtx.strokeStyle = `rgba(255, 255, 255, ${w.life})`;
+                            dfCtx.strokeStyle = `rgba(255, 51, 51, ${w.life})`; // Turns red to indicate bad reflection
                             dfCtx.beginPath();
                             dfCtx.moveTo(w.x, 0);
                             dfCtx.lineTo(w.x, dfCanvas.height);
@@ -13596,10 +13600,10 @@
                 dAnimFrame = requestAnimationFrame(animateDiffraction);
                 if(!dCtx) return;
 
-                dCtx.fillStyle = 'rgba(0,0,0,0.2)';
+                dCtx.fillStyle = 'rgba(0,0,0,0.3)'; // Fast clear
                 dCtx.fillRect(0,0, dCanvas.width, dCanvas.height);
                 
-                dTime += 0.02;
+                dTime += 0.015; // Smooth rotation
 
                 const cw = dCanvas.width;
                 const ch = dCanvas.height;
@@ -13610,24 +13614,24 @@
                 
                 // Draw Geometric Matrix of dots
                 // Spacing decreases as density increases
-                const spacing = Math.min(cw, ch) / (dDensity + 1);
+                const spacing = Math.min(cw, ch) / (dDensity * 0.8);
 
                 for(let ix = -dDensity/2; ix <= dDensity/2; ix++) {
                     for(let iy = -dDensity/2; iy <= dDensity/2; iy++) {
                         
-                        // Apply rotation to the whole grid
+                        // Apply rotation to the whole grid using trigonometry
                         const rx = ix * Math.cos(dTime) - iy * Math.sin(dTime);
                         const ry = ix * Math.sin(dTime) + iy * Math.cos(dTime);
 
                         const px = cx + rx * spacing;
                         const py = cy + ry * spacing;
 
-                        // Only draw if within bounds
+                        // Only draw if within bounds to save CPU
                         if(px > 0 && px < cw && py > 0 && py < ch) {
                             dCtx.beginPath();
                             dCtx.arc(px, py, 2, 0, Math.PI*2);
                             dCtx.fillStyle = 'var(--cyan-neon)';
-                            dCtx.shadowBlur = 10;
+                            dCtx.shadowBlur = 8;
                             dCtx.shadowColor = 'var(--cyan-neon)';
                             dCtx.fill();
                         }
@@ -13667,7 +13671,7 @@
                 // Math: THD grows exponentially as gain hits the ceiling
                 let thdRaw = 0.01;
                 if(thGain > 50) {
-                    // Start distorting
+                    // Start distorting heavily past 50%
                     thdRaw = 0.01 + Math.pow((thGain - 50) / 10, 2);
                 }
                 
@@ -13676,7 +13680,7 @@
                 if(thdRaw > 10) {
                     statVal.innerText = "CLIPPING";
                     statVal.style.color = "var(--red-alert)";
-                    if(navigator.vibrate) navigator.vibrate(10);
+                    if(navigator.vibrate) navigator.vibrate(15);
                 } else if(thdRaw > 1) {
                     statVal.innerText = "WARM";
                     statVal.style.color = "var(--gold-primary)";
@@ -13717,9 +13721,8 @@
                     if(val > 1.0) val = 1.0;
                     if(val < -1.0) val = -1.0;
                     
-                    // Soften the corners slightly if not maxed
+                    // Soften the corners slightly if not completely maxed to simulate tube distortion vs digital clip
                     if(thGain < 90) {
-                       // Simple soft clip approximation
                        val = Math.tanh(val * 1.5) / 1.5; 
                     }
 
@@ -13730,10 +13733,2145 @@
                 }
                 
                 // Color shift based on distortion
-                if(thGain > 70) thCtx.strokeStyle = 'var(--red-alert)';
-                else if(thGain > 40) thCtx.strokeStyle = 'var(--gold-primary)';
-                else thCtx.strokeStyle = '#00ff00';
+                if(thGain > 70) {
+                    thCtx.strokeStyle = 'var(--red-alert)';
+                    thCtx.shadowBlur = 10;
+                    thCtx.shadowColor = 'var(--red-alert)';
+                } else if(thGain > 40) {
+                    thCtx.strokeStyle = 'var(--gold-primary)';
+                    thCtx.shadowBlur = 5;
+                    thCtx.shadowColor = 'var(--gold-primary)';
+                } else {
+                    thCtx.strokeStyle = '#00ff00';
+                    thCtx.shadowBlur = 0;
+                }
                 
                 thCtx.stroke();
+                thCtx.shadowBlur = 0; // reset
             }
         </script>
+        <style>
+            .cooling-wrapper {
+                background: #020202;
+                border: 2px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            }
+
+            .cooling-canvas-box {
+                width: 100%;
+                height: 220px;
+                background: #050505;
+                border: 1px solid #112233;
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+            #coolingCanvas { width: 100%; height: 100%; display: block; }
+
+            .coolant-hud {
+                display: flex; justify-content: space-between; margin-top: 15px;
+                background: #0a0a0f; padding: 12px; border-radius: 6px; border: 1px solid #1a1a24;
+            }
+            .ch-stat { display: flex; flex-direction: column; align-items: center; }
+            .ch-lbl { font-family: var(--font-data); font-size: 8px; color: #666; letter-spacing: 1px; }
+            .ch-val { font-family: var(--font-tech); font-size: 14px; color: var(--cyan-neon); font-weight: bold; }
+
+            .pump-ctrl-box { margin-top: 15px; text-align: center; }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">THERMAL FLUID COOLING</h2>
+                <div class="section-icon"><i class="fas fa-tint"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Manage the liquid cooling loop for the master amplifier rack. Increase Pump PSI to cycle coolant faster under heavy thermal load.</p>
+
+            <div class="cooling-wrapper">
+                <div class="cooling-canvas-box" id="coolWrap">
+                    <canvas id="coolingCanvas"></canvas>
+                    <div style="position:absolute; top:10px; right:10px; color:var(--cyan-neon); font-family:var(--font-tech); font-size:8px; opacity:0.6;">LIQUID LOOP: ACTIVE</div>
+                </div>
+
+                <div class="coolant-hud">
+                    <div class="ch-stat">
+                        <span class="ch-lbl">FLUID TEMP</span>
+                        <span class="ch-val" id="coolTemp">24°C</span>
+                    </div>
+                    <div class="ch-stat">
+                        <span class="ch-lbl">PUMP PRESSURE</span>
+                        <span class="ch-val" id="coolPsi" style="color:var(--gold-primary);">30 PSI</span>
+                    </div>
+                    <div class="ch-stat">
+                        <span class="ch-lbl">FLOW RATE</span>
+                        <span class="ch-val" id="coolFlow" style="color:#00ff00;">6.0 L/m</span>
+                    </div>
+                </div>
+
+                <div class="pump-ctrl-box">
+                    <span style="font-family:var(--font-data); font-size:10px; color:#fff; font-weight:bold;">PUMP POWER OVERRIDE</span>
+                    <input type="range" class="app-slider" id="pumpSlider" min="10" max="100" value="30" style="margin-top: 10px;" oninput="updatePump()">
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .dmx-data-wrapper {
+                background: #000;
+                border: 1px solid #1a1a24;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .data-stream-box {
+                width: 100%; height: 120px; background: #020502; border: 1px solid #004400;
+                border-radius: 6px; position: relative; overflow: hidden;
+                display: flex; align-items: center; padding: 0 10px;
+            }
+            #dataCanvas { width: 100%; height: 100%; display: block; }
+
+            .integrity-hud {
+                display: flex; justify-content: space-between; margin-top: 15px; gap: 10px;
+            }
+            .integrity-card {
+                flex: 1; background: #0a0a0f; border: 1px solid #222; padding: 10px; border-radius: 6px; text-align: center;
+                transition: 0.3s;
+            }
+            .ic-val { font-family: var(--font-tech); font-size: 14px; font-weight: 900; color: #00ff00; transition: 0.3s; }
+            .ic-lbl { font-family: var(--font-data); font-size: 8px; color: #888; display: block; margin-top: 4px; }
+
+            .data-error { color: var(--red-alert) !important; animation: blink 0.3s infinite; text-shadow: 0 0 10px rgba(255,0,0,0.8); }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">DMX DATA INTEGRITY</h2>
+                <div class="section-icon"><i class="fas fa-database"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Monitor digital DMX-512 packet frames. Signal noise causes bit-corruption and flickering fixtures. Engage the 120Ω Terminator to clean reflections.</p>
+
+            <div class="dmx-data-wrapper">
+                <div class="data-stream-box" id="dataWrap">
+                    <canvas id="dataCanvas"></canvas>
+                </div>
+
+                <div class="integrity-hud">
+                    <div class="integrity-card">
+                        <span class="ic-val" id="dmxBitrate">250 kbps</span>
+                        <span class="ic-lbl">BAUD RATE</span>
+                    </div>
+                    <div class="integrity-card">
+                        <span class="ic-val" id="dmxLoss">0.0%</span>
+                        <span class="ic-lbl">PACKET LOSS</span>
+                    </div>
+                    <div class="integrity-card" id="termCard" onclick="toggleTerminator()" style="cursor:pointer; border-color: #555;">
+                        <span class="ic-val" style="color:#555;" id="termStatus">OFF</span>
+                        <span class="ic-lbl">120Ω TERM.</span>
+                    </div>
+                </div>
+
+                <button class="app-btn-outline" style="width:100%; margin-top:15px; border-color:var(--red-alert); color:var(--red-alert);" onmousedown="injectDmxNoise(true)" onmouseup="injectDmxNoise(false)" onmouseleave="injectDmxNoise(false)" ontouchstart="injectDmxNoise(true)" ontouchend="injectDmxNoise(false)">
+                    <i class="fas fa-bolt"></i> INJECT SIGNAL NOISE
+                </button>
+            </div>
+        </div>
+
+        <style>
+            .port-physics-wrapper {
+                background: #050508;
+                border: 2px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .port-canvas-box {
+                width: 100%; height: 200px; background: #000; border-radius: 8px; border: 1px solid #1a1a24;
+                position: relative; overflow: hidden;
+            }
+            #portCanvas { width: 100%; height: 100%; display: block; mix-blend-mode: screen;}
+
+            .port-hud {
+                display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;
+            }
+            .ph-item { background: #0a0a0f; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #222; }
+            .ph-val { font-family: var(--font-tech); font-size: 16px; color: #fff; font-weight: bold; }
+            .ph-lbl { font-family: var(--font-data); font-size: 9px; color: #888; display: block; margin-top:4px;}
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">PORT TURBULENCE AI</h2>
+                <div class="section-icon"><i class="fas fa-wind"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Calculate air velocity within the subwoofer port. Excessive cone excursion pushes air too fast, causing "chuffing" noise and destroying low-end clarity.</p>
+
+            <div class="port-physics-wrapper">
+                <div class="port-canvas-box" id="portWrap">
+                    <canvas id="portCanvas"></canvas>
+                    <div style="position:absolute; top:5px; left:5px; color:#fff; font-family:var(--font-data); font-size:8px; opacity:0.4;">SUBWOOFER PORT CROSS-SECTION</div>
+                </div>
+
+                <div class="port-hud">
+                    <div class="ph-item">
+                        <span class="ph-val" id="airVelVal">8.0 m/s</span>
+                        <span class="ph-lbl">AIR VELOCITY</span>
+                    </div>
+                    <div class="ph-item">
+                        <span class="ph-val" id="portState" style="color:#00ff00;">LAMINAR</span>
+                        <span class="ph-lbl">FLOW STATE</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <span style="font-family:var(--font-data); font-size:10px; color:#aaa; font-weight:bold;">SUB-BASS EXCURSION INTENSITY</span>
+                    <input type="range" class="app-slider" id="portExcursion" min="5" max="100" value="20" style="margin-top:10px;" oninput="updatePortPhysics()">
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // --- 1. THERMAL FLUID COOLING LOGIC ---
+            const coolCanvas = document.getElementById('coolingCanvas');
+            let coolCtx = null;
+            const coolWrap = document.getElementById('coolWrap');
+            
+            let coolAnimFrame = null;
+            let pumpPsi = 30;
+            let fluidParticles = [];
+            let systemHeat = 40; // Simulated external heat generation
+
+            function initCooling() {
+                if(!coolWrap || !coolCanvas) return;
+                coolCanvas.width = coolWrap.clientWidth;
+                coolCanvas.height = coolWrap.clientHeight;
+                coolCtx = coolCanvas.getContext('2d');
+                
+                // Spawn internal particles
+                for(let i=0; i<60; i++) {
+                    // Randomly place along the track
+                    const margin = 40;
+                    const w = coolCanvas.width;
+                    const h = coolCanvas.height;
+                    
+                    let px = margin, py = margin;
+                    const side = Math.floor(Math.random() * 4);
+                    if(side === 0) { px = margin + Math.random()*(w-margin*2); py = margin; } // Top
+                    if(side === 1) { px = w-margin; py = margin + Math.random()*(h-margin*2); } // Right
+                    if(side === 2) { px = margin + Math.random()*(w-margin*2); py = h-margin; } // Bottom
+                    if(side === 3) { px = margin; py = margin + Math.random()*(h-margin*2); } // Left
+                    
+                    fluidParticles.push({x: px, y: py, offset: (Math.random() - 0.5) * 10}); // offset for pipe thickness
+                }
+                if(!coolAnimFrame) animateCooling();
+            }
+            window.addEventListener('resize', initCooling);
+            setTimeout(initCooling, 500);
+
+            function updatePump() {
+                pumpPsi = parseInt(document.getElementById('pumpSlider').value);
+                document.getElementById('coolPsi').innerText = `${pumpPsi} PSI`;
+                document.getElementById('coolFlow').innerText = `${(pumpPsi/5).toFixed(1)} L/m`;
+                if(navigator.vibrate) navigator.vibrate(5);
+            }
+
+            function animateCooling() {
+                coolAnimFrame = requestAnimationFrame(animateCooling);
+                if(!coolCtx) return;
+
+                coolCtx.fillStyle = 'rgba(5, 5, 10, 0.3)'; // Trail effect
+                coolCtx.fillRect(0,0, coolCanvas.width, coolCanvas.height);
+
+                // Thermal Physics: Heat rises naturally, Pump cools it down.
+                systemHeat += 0.1; // Constant heat addition
+                systemHeat -= (pumpPsi * 0.005); // Cooling based on flow
+                
+                // Clamp temp limits
+                if(systemHeat < 20) systemHeat = 20;
+                if(systemHeat > 95) systemHeat = 95;
+
+                document.getElementById('coolTemp').innerText = `${Math.round(systemHeat)}°C`;
+                
+                // Color mapping: Blue (cool) to Red (hot)
+                // 20C = hue 220 (Blue), 90C = hue 0 (Red)
+                let hue = 220 - ((systemHeat - 20) * (220 / 70));
+                if(hue < 0) hue = 0;
+                
+                const pipeColor = `hsl(${hue}, 100%, 50%)`;
+                
+                // Draw Hardware Pipe Loop
+                const margin = 40;
+                const w = coolCanvas.width;
+                const h = coolCanvas.height;
+                
+                coolCtx.strokeStyle = 'rgba(50,50,50,0.5)';
+                coolCtx.lineWidth = 16;
+                coolCtx.lineJoin = 'round';
+                coolCtx.strokeRect(margin, margin, w - margin*2, h - margin*2);
+
+                coolCtx.strokeStyle = pipeColor;
+                coolCtx.lineWidth = 12;
+                coolCtx.strokeRect(margin, margin, w - margin*2, h - margin*2);
+
+                // Simulate Fluid Flow
+                coolCtx.fillStyle = '#fff';
+                const speed = pumpPsi * 0.1;
+                
+                fluidParticles.forEach(p => {
+                    // Navigate the rectangular pipe path clockwise
+                    if(p.y <= margin + 1 && p.x < w - margin) p.x += speed; // Top going right
+                    else if (p.x >= w - margin - 1 && p.y < h - margin) p.y += speed; // Right going down
+                    else if (p.y >= h - margin - 1 && p.x > margin) p.x -= speed; // Bottom going left
+                    else if (p.x <= margin + 1 && p.y > margin) p.y -= speed; // Left going up
+
+                    // Snap to corners to prevent escaping
+                    if(p.x > w - margin) p.x = w - margin;
+                    if(p.x < margin) p.x = margin;
+                    if(p.y > h - margin) p.y = h - margin;
+                    if(p.y < margin) p.y = margin;
+
+                    // Draw droplet
+                    coolCtx.beginPath();
+                    // Add the offset perpendicular to the flow direction to fill the pipe
+                    let drawX = p.x; let drawY = p.y;
+                    if(p.y <= margin + 1 || p.y >= h - margin - 1) drawY += p.offset;
+                    if(p.x <= margin + 1 || p.x >= w - margin - 1) drawX += p.offset;
+
+                    coolCtx.arc(drawX, drawY, 2.5, 0, Math.PI*2);
+                    coolCtx.fill();
+                });
+            }
+
+
+            // --- 2. DMX DATA INTEGRITY LOGIC ---
+            const dCanvas = document.getElementById('dataCanvas');
+            let dCtx = null;
+            const dWrap = document.getElementById('dataWrap');
+            
+            let dmxPackets = [];
+            let isNoisy = false;
+            let isTerminated = false;
+            let dmxAnimFrame = null;
+            let dmxTime = 0;
+
+            function initDmxData() {
+                if(!dWrap || !dCanvas) return;
+                dCanvas.width = dWrap.clientWidth;
+                dCanvas.height = dWrap.clientHeight;
+                dCtx = dCanvas.getContext('2d');
+                if(!dmxAnimFrame) animateDmxData();
+            }
+            window.addEventListener('resize', initDmxData);
+            setTimeout(initDmxData, 800);
+
+            function injectDmxNoise(state) {
+                isNoisy = state;
+                if(state && navigator.vibrate) navigator.vibrate(50);
+            }
+
+            function toggleTerminator() {
+                if(typeof playTap === 'function') playTap();
+                if(navigator.vibrate) navigator.vibrate(10);
+                
+                isTerminated = !isTerminated;
+                
+                const status = document.getElementById('termStatus');
+                const card = document.getElementById('termCard');
+                
+                if(isTerminated) {
+                    status.innerText = "ENGAGED";
+                    status.style.color = "#00ff00";
+                    card.style.borderColor = "#00ff00";
+                    card.style.background = "rgba(0,255,0,0.1)";
+                } else {
+                    status.innerText = "OFF";
+                    status.style.color = "#555";
+                    card.style.borderColor = "#222";
+                    card.style.background = "#0a0a0f";
+                }
+            }
+
+            function animateDmxData() {
+                dmxAnimFrame = requestAnimationFrame(animateDmxData);
+                if(!dCtx) return;
+
+                // Matrix style clear
+                dCtx.fillStyle = 'rgba(2, 5, 2, 0.2)';
+                dCtx.fillRect(0,0, dCanvas.width, dCanvas.height);
+
+                dmxTime++;
+
+                // Spawn bits continuously
+                if(dmxTime % 2 === 0) {
+                    // Logic: If noisy and NO terminator, 80% error rate. If noisy WITH terminator, 10% error rate.
+                    let errorChance = 0.01; // Base error
+                    if(isNoisy) {
+                        errorChance = isTerminated ? 0.15 : 0.85;
+                    }
+
+                    const isCorrupt = Math.random() < errorChance;
+
+                    dmxPackets.push({
+                        x: dCanvas.width + 10,
+                        y: 20 + Math.random() * (dCanvas.height - 40),
+                        val: Math.random() > 0.5 ? '1' : '0',
+                        corrupt: isCorrupt
+                    });
+                }
+
+                let activeErrors = 0;
+                let totalVisible = dmxPackets.length;
+
+                dCtx.font = "bold 16px 'Courier New', monospace";
+                
+                for(let i = dmxPackets.length - 1; i >= 0; i--) {
+                    let p = dmxPackets[i];
+                    p.x -= 6; // Move left
+                    
+                    if(p.corrupt) {
+                        activeErrors++;
+                        dCtx.fillStyle = "var(--red-alert)";
+                        dCtx.shadowBlur = 10;
+                        dCtx.shadowColor = "var(--red-alert)";
+                        // Glitch the value if corrupt
+                        p.val = Math.random() > 0.5 ? 'X' : '#';
+                    } else {
+                        dCtx.fillStyle = "#00ff00";
+                        dCtx.shadowBlur = 0;
+                    }
+                    
+                    dCtx.fillText(p.val, p.x, p.y);
+                    
+                    if(p.x < -20) dmxPackets.splice(i, 1);
+                }
+                dCtx.shadowBlur = 0; // Reset
+
+                // Update UI Stats
+                const lossEl = document.getElementById('dmxLoss');
+                if(totalVisible > 0) {
+                    const lossPct = (activeErrors / totalVisible) * 100;
+                    lossEl.innerText = `${lossPct.toFixed(1)}%`;
+                    if(lossPct > 5) {
+                        lossEl.classList.add('data-error');
+                    } else {
+                        lossEl.classList.remove('data-error');
+                    }
+                }
+            }
+
+
+            // --- 3. ACOUSTIC PORT TURBULENCE (CHUFFING) LOGIC ---
+            const portCanvas = document.getElementById('portCanvas');
+            let portCtx = null;
+            const portWrap = document.getElementById('portWrap');
+            
+            let portParticles = [];
+            let portAnimFrame = null;
+            let portExcursion = 20;
+
+            function initPortPhysics() {
+                if(!portWrap || !portCanvas) return;
+                portCanvas.width = portWrap.clientWidth;
+                portCanvas.height = portWrap.clientHeight;
+                portCtx = portCanvas.getContext('2d');
+                if(!portAnimFrame) animatePort();
+            }
+            window.addEventListener('resize', initPortPhysics);
+            setTimeout(initPortPhysics, 1000);
+
+            function updatePortPhysics() {
+                portExcursion = parseInt(document.getElementById('portExcursion').value);
+                
+                // Velocity simulation: V = Q/A. Higher excursion = much higher velocity.
+                const vel = (portExcursion * 0.4).toFixed(1);
+                document.getElementById('airVelVal').innerText = `${vel} m/s`;
+                
+                const stateEl = document.getElementById('portState');
+                
+                if(vel > 30) {
+                    stateEl.innerText = "CHUFFING (TURBULENT)"; 
+                    stateEl.style.color = "var(--red-alert)";
+                    if(navigator.vibrate) navigator.vibrate(15);
+                } else if(vel > 18) {
+                    stateEl.innerText = "COMPRESSING"; 
+                    stateEl.style.color = "var(--gold-primary)";
+                } else {
+                    stateEl.innerText = "LAMINAR FLOW"; 
+                    stateEl.style.color = "#00ff00";
+                }
+            }
+
+            class AirMolecule {
+                constructor(cx, cy, exc) {
+                    this.x = cx - 50; // Start inside box
+                    this.y = cy + (Math.random() * 40 - 20); // Random Y within port height
+                    
+                    // Base speed + excursion
+                    this.vx = (exc * 0.15) + 2; 
+                    this.vy = 0;
+                    
+                    this.life = 1.0;
+                }
+                update(exc) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    
+                    // If exiting the port
+                    const portExitX = portCanvas.width / 2 + 50;
+                    
+                    if(this.x > portExitX) {
+                        // Turbulence logic! If velocity is high, particles scatter wildly
+                        if(exc > 75) {
+                            this.vy += (Math.random() - 0.5) * 4; // Massive chuffing spread
+                            this.vx *= 0.9; // Loses forward momentum to chaos
+                        } else if (exc > 45) {
+                            this.vy += (Math.random() - 0.5) * 1.5; // Slight spread
+                        } else {
+                            this.vy += (Math.random() - 0.5) * 0.2; // Laminar, stays straight
+                        }
+                    }
+
+                    this.life -= 0.015;
+                }
+                draw(ctx, exc) {
+                    if(this.life <= 0) return;
+                    
+                    // Color shifts from white to red if turbulent
+                    let color = `rgba(0, 255, 255, ${this.life})`;
+                    if(exc > 75) color = `rgba(255, 51, 51, ${this.life})`;
+                    else if (exc > 45) color = `rgba(255, 200, 0, ${this.life})`;
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(this.x, this.y, 2, 2);
+                }
+            }
+
+            function animatePort() {
+                portAnimFrame = requestAnimationFrame(animatePort);
+                if(!portCtx) return;
+
+                portCtx.fillStyle = 'rgba(5, 5, 10, 0.4)'; // Blur
+                portCtx.fillRect(0,0, portCanvas.width, portCanvas.height);
+
+                const cx = portCanvas.width / 2;
+                const cy = portCanvas.height / 2;
+
+                // Draw the physical Subwoofer Box & Port Walls
+                portCtx.strokeStyle = '#555';
+                portCtx.lineWidth = 4;
+                
+                // Box interior (Left side)
+                portCtx.beginPath();
+                portCtx.moveTo(cx - 50, cy - 80);
+                portCtx.lineTo(cx - 50, cy + 80);
+                portCtx.stroke();
+
+                // Port walls (Top and Bottom)
+                portCtx.beginPath();
+                portCtx.moveTo(cx - 50, cy - 25);
+                portCtx.lineTo(cx + 50, cy - 25); // Top wall
+                portCtx.stroke();
+                
+                portCtx.beginPath();
+                portCtx.moveTo(cx - 50, cy + 25);
+                portCtx.lineTo(cx + 50, cy + 25); // Bottom wall
+                portCtx.stroke();
+
+                // Add particles based on excursion intensity
+                const spawnRate = Math.floor(portExcursion / 10) + 1;
+                for(let i=0; i<spawnRate; i++) {
+                    portParticles.push(new AirMolecule(cx, cy, portExcursion));
+                }
+
+                // Update and Draw Particles
+                for(let i = portParticles.length - 1; i >= 0; i--) {
+                    let p = portParticles[i];
+                    p.update(portExcursion);
+                    p.draw(portCtx, portExcursion);
+                    
+                    if(p.life <= 0 || p.x > portCanvas.width) {
+                        portParticles.splice(i, 1);
+                    }
+                }
+            }
+        </script>
+        <style>
+            .phase-wrapper {
+                background: #020205;
+                border: 1px solid #1a2233;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .phase-canvas-box {
+                width: 100%;
+                height: 200px;
+                background: #000;
+                border: 1px solid #333;
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: inset 0 0 30px rgba(0, 229, 255, 0.05);
+            }
+            #phaseCanvas { width: 100%; height: 100%; display: block; }
+
+            /* Grid Lines */
+            .phase-grid {
+                position: absolute; inset: 0; pointer-events: none; z-index: 1;
+                background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+                background-size: 40px 40px; background-position: center;
+            }
+            .phase-center-line {
+                position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+                background: rgba(0, 255, 0, 0.4); z-index: 1;
+            }
+
+            .phase-hud {
+                display: flex; justify-content: space-between; align-items: center;
+                background: #0a0a0f; padding: 12px; border-radius: 6px; border: 1px solid #1a1a24; margin-top: 15px;
+            }
+            .ph-lbl { font-family: var(--font-data); font-size: 9px; color: #888; font-weight: bold; }
+            .ph-val { font-family: var(--font-tech); font-size: 16px; font-weight: bold; color: #fff; }
+            
+            .phase-status { padding: 5px 10px; border-radius: 4px; font-family: var(--font-tech); font-size: 10px; font-weight: bold; }
+            .ps-cancel { background: rgba(255,51,51,0.1); color: var(--red-alert); border: 1px solid var(--red-alert); }
+            .ps-aligned { background: rgba(0,255,0,0.1); color: #00ff00; border: 1px solid #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">PHASE ALIGNMENT AI</h2>
+                <div class="section-icon"><i class="fas fa-chart-line"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Align the phase trace of the Subwoofers (Red) with the Line Array (Cyan) at the 80Hz crossover point by applying digital delay.</p>
+
+            <div class="phase-wrapper">
+                <div class="phase-canvas-box" id="phaseWrap">
+                    <div class="phase-grid"></div>
+                    <div class="phase-center-line"></div>
+                    <canvas id="phaseCanvas"></canvas>
+                    <div style="position:absolute; top:5px; left:5px; color:#fff; font-family:var(--font-tech); font-size:8px;">+180°</div>
+                    <div style="position:absolute; bottom:5px; left:5px; color:#fff; font-family:var(--font-tech); font-size:8px;">-180°</div>
+                    <div style="position:absolute; bottom:5px; right:5px; color:var(--gold-primary); font-family:var(--font-tech); font-size:8px;">80Hz CROSSOVER</div>
+                </div>
+
+                <div class="phase-hud">
+                    <div style="display:flex; flex-direction:column;">
+                        <span class="ph-lbl">SUBWOOFER DELAY</span>
+                        <span class="ph-val" id="subDelayVal" style="color:var(--gold-primary);">0.0 ms</span>
+                    </div>
+                    <div class="phase-status ps-cancel" id="phaseStateBadge">CANCELLATION</div>
+                </div>
+
+                <input type="range" class="app-slider" id="subDelaySlider" min="0" max="20" step="0.1" value="0" style="margin-top: 15px;" oninput="updatePhaseAlignment()">
+            </div>
+        </div>
+
+        <style>
+            .estop-wrapper {
+                background: #111;
+                border: 2px solid #333;
+                border-radius: 12px;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                box-shadow: inset 0 0 50px rgba(0,0,0,1);
+            }
+
+            /* Physical Interlock Hardware Box */
+            .interlock-box {
+                background: linear-gradient(135deg, #e6b800, #b38f00); /* Industrial Yellow */
+                border: 4px solid #1a1a1a; border-radius: 8px; width: 100%; max-width: 300px;
+                padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative;
+                box-shadow: 0 15px 30px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.5);
+            }
+            .interlock-box::before { content: 'CLASS 4 LASER INTERLOCK'; position: absolute; top: 10px; font-family: var(--font-tech); font-size: 10px; color: #000; font-weight: 900; }
+
+            .hardware-controls {
+                display: flex; justify-content: space-around; width: 100%; margin-top: 20px; align-items: center;
+            }
+
+            /* Turn Key */
+            .key-switch-container { display: flex; flex-direction: column; align-items: center; }
+            .key-slot {
+                width: 40px; height: 40px; border-radius: 50%; background: #222; border: 3px solid #555;
+                display: flex; justify-content: center; align-items: center; cursor: pointer;
+                box-shadow: inset 0 5px 10px rgba(0,0,0,0.8); transition: 0.3s;
+            }
+            .the-key { width: 4px; height: 20px; background: silver; border-radius: 2px; transition: transform 0.2s; }
+            .key-slot.armed .the-key { transform: rotate(90deg); background: var(--cyan-neon); box-shadow: 0 0 10px var(--cyan-neon);}
+            
+            /* Armed LED */
+            .armed-led {
+                width: 15px; height: 15px; border-radius: 50%; background: #330000; border: 2px solid #111;
+                box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); transition: 0.3s;
+            }
+            .armed-led.active { background: #ff3333; box-shadow: 0 0 20px #ff3333, inset 0 2px 5px #ff9999; }
+
+            /* Massive E-Stop Button */
+            .estop-button-base {
+                width: 120px; height: 120px; border-radius: 50%; background: #ffff00;
+                display: flex; justify-content: center; align-items: center;
+                box-shadow: inset 0 -5px 15px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.5);
+            }
+            .estop-button {
+                width: 90px; height: 90px; border-radius: 50%;
+                background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000);
+                border: 2px solid #660000; cursor: pointer;
+                box-shadow: 0 15px 25px rgba(0,0,0,0.6), inset 0 5px 10px rgba(255,150,150,0.6);
+                transition: transform 0.05s, box-shadow 0.05s;
+                display: flex; justify-content: center; align-items: center;
+                user-select: none; touch-action: none;
+            }
+            .estop-button:active, .estop-button.killed {
+                transform: scale(0.95) translateY(10px);
+                box-shadow: 0 2px 5px rgba(0,0,0,0.8), inset 0 10px 20px rgba(0,0,0,0.6);
+            }
+
+            /* Background laser animation indicating system state */
+            .laser-bg-indicator {
+                width: 100%; height: 60px; background: #000; margin-top: 15px; border-radius: 6px;
+                border: 1px solid #333; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+            }
+            .lbi-beam { position: absolute; width: 150%; height: 2px; background: var(--cyan-neon); box-shadow: 0 0 20px var(--cyan-neon); opacity: 0; transition: opacity 0.2s; }
+            .lbi-beam.active { opacity: 1; animation: laserSweep 0.5s infinite alternate; }
+            @keyframes laserSweep { 0% { transform: rotate(-5deg) translateY(-20px); } 100% { transform: rotate(5deg) translateY(20px); } }
+
+            /* Global Screen Red Flash for E-Stop */
+            @keyframes emergencyFlash { 0% { background: rgba(255,0,0,0.4); } 100% { background: transparent; } }
+            body.estop-triggered::after {
+                content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 99999;
+                animation: emergencyFlash 0.5s ease-out forwards; box-shadow: inset 0 0 100px rgba(255,0,0,0.8);
+            }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">LASER INTERLOCK AI</h2>
+                <div class="section-icon"><i class="fas fa-radiation-alt" style="color: #ffff00;"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Turn the key to arm the Class-4 laser network. In the event of a crowd strike or hardware fault, slam the E-Stop.</p>
+
+            <div class="estop-wrapper">
+                <div class="interlock-box">
+                    
+                    <div class="hardware-controls">
+                        <div class="key-switch-container">
+                            <span style="font-family:var(--font-tech); font-size:8px; color:#000; font-weight:bold; margin-bottom:5px;">ARM KEY</span>
+                            <div class="key-slot" id="laserKey" onclick="toggleLaserArm()">
+                                <div class="the-key"></div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <span style="font-family:var(--font-tech); font-size:8px; color:#000; font-weight:bold; margin-bottom:5px;">EMISSION</span>
+                            <div class="armed-led" id="laserLed"></div>
+                        </div>
+                    </div>
+
+                    <div class="estop-button-base" style="margin-top: 20px;">
+                        <div class="estop-button" id="btnEstop" onmousedown="triggerEStop()" ontouchstart="triggerEStop(event)">
+                            <span style="color:#ffcccc; font-family:var(--font-tech); font-size:12px; font-weight:900;">EMERGENCY<br>STOP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="laser-bg-indicator">
+                    <span style="position:absolute; z-index:2; font-family:var(--font-tech); font-size:10px; color:#555;" id="laserStatusTxt">SYSTEM DISARMED</span>
+                    <div class="lbi-beam" id="laserBeamVis"></div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .genlock-wrapper {
+                background: #000;
+                border: 1px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .camera-viewfinder {
+                width: 100%; height: 200px; background: #050505; border: 2px solid #444; border-radius: 8px;
+                position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+            }
+            
+            /* Viewfinder UI elements */
+            .cam-rec { position: absolute; top: 10px; left: 10px; color: var(--red-alert); font-family: var(--font-tech); font-size: 10px; font-weight: bold; animation: blink 1s infinite;}
+            .cam-fps { position: absolute; top: 10px; right: 10px; color: #fff; font-family: var(--font-data); font-size: 10px; }
+            .cam-crosshair { position: absolute; width: 40px; height: 40px; border: 1px solid rgba(255,255,255,0.3); pointer-events: none; }
+            .cam-crosshair::before, .cam-crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.3); }
+            .cam-crosshair::before { width: 10px; height: 1px; top: 50%; left: -5px; } .cam-crosshair::after { height: 10px; width: 1px; top: -5px; left: 50%; }
+
+            #genlockCanvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+
+            .gl-hud {
+                display: flex; justify-content: space-between; margin-top: 15px; align-items: center;
+                background: #0a0a0f; padding: 12px; border-radius: 6px; border: 1px solid #1a1a24;
+            }
+            .gl-val { font-family: var(--font-tech); font-size: 16px; font-weight: 900; color: #fff; }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">CAMERA GENLOCK AI</h2>
+                <div class="section-icon"><i class="fas fa-video"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Eliminate rolling black bands on the LED Wall when filming. Adjust the LED refresh rate to sync with the camera's 60fps shutter speed.</p>
+
+            <div class="genlock-wrapper">
+                <div class="camera-viewfinder" id="genWrap">
+                    <canvas id="genlockCanvas"></canvas>
+                    <div class="cam-rec">● REC</div>
+                    <div class="cam-fps">SHUTTER: 60 FPS</div>
+                    <div class="cam-crosshair"></div>
+                </div>
+
+                <div class="gl-hud">
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="font-family:var(--font-data); font-size:9px; color:#888;">LED REFRESH RATE</span>
+                        <span class="gl-val" id="ledHzVal">1920 Hz</span>
+                    </div>
+                    <span style="font-family:var(--font-tech); font-size:10px; font-weight:bold; padding:5px 10px; border-radius:4px;" id="genlockStatus">UNSYNCED</span>
+                </div>
+
+                <input type="range" class="app-slider" id="genlockSlider" min="1000" max="4000" value="1920" style="margin-top: 15px;" oninput="updateGenlock()">
+            </div>
+        </div>
+
+        <script>
+            // --- 1. DUAL-FFT PHASE ALIGNMENT LOGIC ---
+            const phCanvas = document.getElementById('phaseCanvas');
+            let phCtx = null;
+            const phWrap = document.getElementById('phaseWrap');
+            
+            let phAnimFrame = null;
+            let phTime = 0;
+            let subDelayMs = 0;
+
+            function initPhaseAlignment() {
+                if(!phWrap || !phCanvas) return;
+                phCanvas.width = phWrap.clientWidth;
+                phCanvas.height = phWrap.clientHeight;
+                phCtx = phCanvas.getContext('2d');
+                if(!phAnimFrame) animatePhaseGraph();
+            }
+            window.addEventListener('resize', initPhaseAlignment);
+            setTimeout(initPhaseAlignment, 500);
+
+            function updatePhaseAlignment() {
+                subDelayMs = parseFloat(document.getElementById('subDelaySlider').value);
+                document.getElementById('subDelayVal').innerText = `${subDelayMs.toFixed(1)} ms`;
+                
+                const badge = document.getElementById('phaseStateBadge');
+                
+                // Target perfect alignment is arbitrarily set to around 12.5ms for this simulator
+                const targetDelay = 12.5;
+                const diff = Math.abs(subDelayMs - targetDelay);
+                
+                if(diff < 0.5) {
+                    badge.className = 'phase-status ps-aligned';
+                    badge.innerText = 'PERFECT ALIGNMENT';
+                    if(navigator.vibrate) navigator.vibrate(20);
+                } else if(diff < 3.0) {
+                    badge.className = 'phase-status';
+                    badge.style.background = 'rgba(212,175,55,0.1)';
+                    badge.style.color = 'var(--gold-primary)';
+                    badge.style.borderColor = 'var(--gold-primary)';
+                    badge.innerText = 'COMB FILTERING';
+                } else {
+                    badge.className = 'phase-status ps-cancel';
+                    badge.innerText = 'CANCELLATION';
+                }
+            }
+
+            function animatePhaseGraph() {
+                phAnimFrame = requestAnimationFrame(animatePhaseGraph);
+                if(!phCtx) return;
+
+                phCtx.clearRect(0,0, phCanvas.width, phCanvas.height);
+                phTime += 0.05;
+
+                const w = phCanvas.width;
+                const h = phCanvas.height;
+                
+                // Draw Line Array Phase Trace (Static reference, cyan)
+                drawPhaseTrace(phCtx, w, h, 0, 'rgba(0, 229, 255, 0.8)');
+                
+                // Draw Subwoofer Phase Trace (Moves based on delay, red/gold/green)
+                // Color changes based on alignment
+                const targetDelay = 12.5;
+                const diff = Math.abs(subDelayMs - targetDelay);
+                let subColor = 'rgba(255, 51, 51, 0.8)'; // Red
+                if(diff < 0.5) subColor = 'rgba(0, 255, 0, 1)'; // Green
+                else if(diff < 3.0) subColor = 'rgba(212, 175, 55, 0.8)'; // Gold
+
+                drawPhaseTrace(phCtx, w, h, subDelayMs * 0.8, subColor);
+            }
+
+            function drawPhaseTrace(ctx, w, h, offset, color) {
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                
+                let isDrawing = false;
+
+                // Simulate Phase Wrapping (lines going diagonally and snapping back)
+                for(let x=0; x<w; x++) {
+                    // Phase equation simulator: phase wraps between -180 and +180 (represented by 0 to h)
+                    // The slope indicates time delay.
+                    
+                    // Base frequency curve + time offset + animated scrolling
+                    let phaseVal = ( (x * 0.02) + offset - phTime ) % 1.0;
+                    if(phaseVal < 0) phaseVal += 1.0; // Ensure positive modulo
+
+                    const y = phaseVal * h;
+
+                    if(!isDrawing || Math.abs(y - ctx.lastY) > h * 0.8) {
+                        // Snap occurred, don't draw connecting line
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    ctx.lastY = y;
+                    isDrawing = true;
+                }
+                ctx.stroke();
+            }
+
+
+            // --- 2. CLASS-4 LASER E-STOP INTERLOCK LOGIC ---
+            let isLaserArmed = false;
+            let laserHasFault = false;
+
+            function toggleLaserArm() {
+                if(laserHasFault) {
+                    if(typeof triggerToast === 'function') triggerToast("RESET E-STOP FIRST");
+                    return;
+                }
+
+                if(typeof playTap === 'function') playTap();
+                isLaserArmed = !isLaserArmed;
+
+                const key = document.getElementById('laserKey');
+                const led = document.getElementById('laserLed');
+                const beam = document.getElementById('laserBeamVis');
+                const statTxt = document.getElementById('laserStatusTxt');
+
+                if(isLaserArmed) {
+                    key.classList.add('armed');
+                    led.classList.add('active');
+                    beam.classList.add('active');
+                    statTxt.innerText = "DANGER: EMISSION ACTIVE";
+                    statTxt.style.color = "var(--cyan-neon)";
+                    if(navigator.vibrate) navigator.vibrate([50, 50, 100]); // Startup thud
+                    
+                    // Start Synth drone if engine is on (Part 3)
+                    if(typeof masterGain !== 'undefined' && typeof actx !== 'undefined' && window.isEngineOn) {
+                        // Just an audio cue
+                        playSynth('kick', null);
+                    }
+                } else {
+                    key.classList.remove('armed');
+                    led.classList.remove('active');
+                    beam.classList.remove('active');
+                    statTxt.innerText = "SYSTEM DISARMED";
+                    statTxt.style.color = "#555";
+                    if(navigator.vibrate) navigator.vibrate(20);
+                }
+            }
+
+            function triggerEStop(e) {
+                if(e) e.preventDefault();
+                
+                // Only trigger if currently armed
+                if(!isLaserArmed && !laserHasFault) {
+                    // Physical button press visual only
+                    document.getElementById('btnEstop').style.transform = 'scale(0.95)';
+                    setTimeout(()=>document.getElementById('btnEstop').style.transform = 'scale(1)', 100);
+                    return;
+                }
+
+                if(laserHasFault) {
+                    // Resetting the E-Stop (Pulling it back up)
+                    laserHasFault = false;
+                    document.getElementById('btnEstop').classList.remove('killed');
+                    document.getElementById('laserStatusTxt').innerText = "SYSTEM DISARMED (READY)";
+                    if(navigator.vibrate) navigator.vibrate(50);
+                    return;
+                }
+
+                // KILLING THE SYSTEM
+                if(typeof playTap === 'function') playTap();
+                if(navigator.vibrate) navigator.vibrate([200, 50, 200, 50, 500]); // Massive vibration
+                
+                document.body.classList.add('estop-triggered');
+                setTimeout(() => document.body.classList.remove('estop-triggered'), 500);
+
+                // Hardware state updates
+                isLaserArmed = false;
+                laserHasFault = true;
+                
+                document.getElementById('btnEstop').classList.add('killed');
+                document.getElementById('laserKey').classList.remove('armed');
+                document.getElementById('laserLed').classList.remove('active');
+                document.getElementById('laserBeamVis').classList.remove('active');
+                
+                const statTxt = document.getElementById('laserStatusTxt');
+                statTxt.innerText = "FAULT: E-STOP ENGAGED";
+                statTxt.style.color = "var(--red-alert)";
+                
+                // Cut audio master instantly if running
+                if(typeof masterGain !== 'undefined' && typeof actx !== 'undefined') {
+                    masterGain.gain.setTargetAtTime(0, actx.currentTime + 0.05);
+                }
+                if(typeof triggerToast === 'function') triggerToast("EMERGENCY STOP ACTIVATED. LASERS KILLED.");
+            }
+
+
+            // --- 3. LED WALL GENLOCK AI LOGIC ---
+            const genCanvas = document.getElementById('genlockCanvas');
+            let genCtx = null;
+            const genWrap = document.getElementById('genWrap');
+            
+            let genAnimFrame = null;
+            let ledHz = 1920;
+            const cameraFps = 60; // Constant
+
+            function initGenlock() {
+                if(!genWrap || !genCanvas) return;
+                genCanvas.width = genWrap.clientWidth;
+                genCanvas.height = genWrap.clientHeight;
+                genCtx = genCanvas.getContext('2d');
+                if(!genAnimFrame) animateGenlock();
+            }
+            window.addEventListener('resize', initGenlock);
+            setTimeout(initGenlock, 800);
+
+            function updateGenlock() {
+                ledHz = parseInt(document.getElementById('genlockSlider').value);
+                document.getElementById('ledHzVal').innerText = `${ledHz} Hz`;
+
+                const stat = document.getElementById('genlockStatus');
+                
+                // Perfect Genlock occurs when LED Hz is a clean multiple of Camera FPS.
+                // e.g. 1920 / 60 = 32. 3840 / 60 = 64.
+                const ratio = ledHz / cameraFps;
+                const isLocked = Number.isInteger(ratio);
+                const diff = Math.abs(Math.round(ratio) - ratio);
+
+                if(diff === 0) {
+                    stat.innerText = "LOCKED";
+                    stat.style.color = "#000";
+                    stat.style.background = "#00ff00";
+                    if(navigator.vibrate) navigator.vibrate(20);
+                } else if(diff < 0.2) {
+                    stat.innerText = "SYNCING...";
+                    stat.style.color = "#000";
+                    stat.style.background = "var(--gold-primary)";
+                } else {
+                    stat.innerText = "UNSYNCED";
+                    stat.style.color = "var(--red-alert)";
+                    stat.style.background = "rgba(255,51,51,0.1)";
+                }
+            }
+
+            let scanlineY = 0;
+
+            function animateGenlock() {
+                genAnimFrame = requestAnimationFrame(animateGenlock);
+                if(!genCtx) return;
+
+                const w = genCanvas.width;
+                const h = genCanvas.height;
+
+                // 1. Draw "LED Wall Content" (Background)
+                // Just a vibrant gradient mimicking MND stage visuals
+                const grad = genCtx.createLinearGradient(0, 0, w, h);
+                grad.addColorStop(0, '#001133');
+                grad.addColorStop(0.5, 'var(--cyan-neon)');
+                grad.addColorStop(1, 'var(--gold-primary)');
+                genCtx.fillStyle = grad;
+                genCtx.fillRect(0,0, w, h);
+                
+                // Draw fake LED pixel grid
+                genCtx.fillStyle = 'rgba(0,0,0,0.4)';
+                for(let x=0; x<w; x+=4) genCtx.fillRect(x, 0, 1, h);
+                for(let y=0; y<h; y+=4) genCtx.fillRect(0, y, w, 1);
+
+                // 2. Draw Camera Moire / Scanlines (The Glitch)
+                // The speed and size of the black bands depend on how far off the ratio is from an integer
+                const ratio = ledHz / cameraFps;
+                const diff = Math.abs(Math.round(ratio) - ratio);
+                
+                // If diff is 0, no scanlines.
+                if(diff > 0) {
+                    // Speed is proportional to the difference
+                    const speed = diff * 15; 
+                    scanlineY += speed;
+                    if(scanlineY > h) scanlineY = 0;
+
+                    // Draw rolling black bars
+                    genCtx.fillStyle = `rgba(0, 0, 0, ${diff * 1.5})`; // Opacity based on error severity
+                    
+                    const barHeight = h * 0.3;
+                    const numBars = 3;
+                    const spacing = h / numBars;
+                    
+                    for(let i=0; i<numBars+1; i++) {
+                        let y = scanlineY + (i * spacing);
+                        if(y > h) y -= h * 1.5; // Wrap around smoothly
+                        genCtx.fillRect(0, y, w, barHeight);
+                    }
+                }
+            }
+            
+            // Init check
+            setTimeout(updateGenlock, 500);
+        </script>
+        <style>
+            .spl-heatmap-wrapper {
+                background: #020202;
+                border: 1px solid #1a2233;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .spl-canvas-box {
+                width: 100%;
+                height: 250px;
+                background: #000;
+                border: 2px solid var(--cyan-neon);
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+                touch-action: none;
+                box-shadow: inset 0 0 30px rgba(0, 229, 255, 0.1);
+            }
+            #splCanvas { width: 100%; height: 100%; display: block; mix-blend-mode: screen; opacity: 0.8; }
+            
+            .spl-grid {
+                position: absolute; inset: 0; pointer-events: none; z-index: 1;
+                background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+                background-size: 20px 20px;
+            }
+
+            /* Draggable Speaker Nodes */
+            .spl-node {
+                position: absolute; width: 20px; height: 20px; background: #000; border: 2px solid #fff;
+                border-radius: 50%; z-index: 10; cursor: grab; display: flex; justify-content: center; align-items: center;
+                transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            }
+            .spl-node::after { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+            .spl-node:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.2); }
+            
+            .spl-legend {
+                display: flex; height: 10px; width: 100%; margin-top: 15px; border-radius: 5px;
+                background: linear-gradient(90deg, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);
+            }
+            .spl-legend-labels {
+                display: flex; justify-content: space-between; font-family: var(--font-tech); font-size: 8px; color: #aaa; margin-top: 5px;
+            }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">SPL HEATMAP AI</h2>
+                <div class="section-icon"><i class="fas fa-map-marked-alt"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Drag the MND Speaker Arrays across the venue. The AI calculates the inverse-square law to render a live thermodynamic map of Sound Pressure Levels (SPL).</p>
+
+            <div class="spl-heatmap-wrapper">
+                <div class="spl-canvas-box" id="splWrap">
+                    <div class="spl-grid"></div>
+                    <canvas id="splCanvas"></canvas>
+                    
+                    <div class="spl-node" id="splNode1" style="top: 20%; left: 30%;"></div>
+                    <div class="spl-node" id="splNode2" style="top: 20%; left: 70%;"></div>
+                    <div class="spl-node" id="splNode3" style="top: 80%; left: 50%; border-color:var(--gold-primary);"></div>
+                </div>
+
+                <div class="spl-legend"></div>
+                <div class="spl-legend-labels">
+                    <span>< 80 dB (QUIET)</span>
+                    <span>95 dB</span>
+                    <span>110+ dB (DANGER)</span>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .pyro-fallout-wrapper {
+                background: #020406;
+                border: 1px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .pyro-canvas-box {
+                width: 100%; height: 220px; background: #000; border-radius: 8px; border: 1px solid #111;
+                position: relative; overflow: hidden;
+            }
+            #pyroCanvas { width: 100%; height: 100%; display: block; mix-blend-mode: screen; }
+
+            /* Virtual Stage Elements */
+            .pyro-stage {
+                position: absolute; bottom: 0; left: 0; width: 100%; height: 10px; background: #111; border-top: 1px solid #333;
+            }
+            .pyro-machine {
+                position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 12px; height: 15px;
+                background: #222; border: 1px solid var(--red-alert); border-radius: 2px; z-index: 5;
+            }
+
+            .fallout-hud {
+                display: flex; justify-content: space-between; margin-top: 15px; align-items: center;
+                background: #0a0a0f; padding: 12px; border-radius: 6px; border: 1px solid #1a1a24;
+            }
+            .fh-lbl { font-family: var(--font-data); font-size: 9px; color: #888; font-weight: bold; }
+            .fh-val { font-family: var(--font-tech); font-size: 14px; color: var(--gold-primary); font-weight: bold; }
+            
+            .fallout-warning {
+                font-family: var(--font-tech); font-size: 9px; padding: 4px 8px; border-radius: 4px;
+                background: rgba(255,51,51,0.1); color: var(--red-alert); border: 1px solid var(--red-alert);
+            }
+            .fallout-safe {
+                font-family: var(--font-tech); font-size: 9px; padding: 4px 8px; border-radius: 4px;
+                background: rgba(0,255,0,0.1); color: #00ff00; border: 1px solid #00ff00;
+            }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">PYRO FALLOUT DIRECTOR</h2>
+                <div class="section-icon"><i class="fas fa-meteor"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Simulate wind shear on burning pyrotechnic particles. The AI calculates the exact landing radius to prevent crowd and performer injuries.</p>
+
+            <div class="pyro-fallout-wrapper">
+                <div class="pyro-canvas-box" id="pyroWrap">
+                    <canvas id="pyroCanvas"></canvas>
+                    <div class="pyro-machine"></div>
+                    <div class="pyro-stage"></div>
+                    <div style="position:absolute; top:10px; left:10px; color:#fff; font-family:var(--font-tech); font-size:8px; opacity:0.5;">FRONT ELEVATION: FALLOUT RADIUS</div>
+                </div>
+
+                <div class="fallout-hud">
+                    <div style="display:flex; flex-direction:column;">
+                        <span class="fh-lbl">WIND SHEAR VELOCITY</span>
+                        <span class="fh-val" id="pyroWindVal">0.0 m/s</span>
+                    </div>
+                    <div class="fallout-safe" id="pyroSafetyBadge">ZONE CLEAR</div>
+                </div>
+
+                <input type="range" class="app-slider" id="pyroWindSlider" min="-50" max="50" value="0" style="margin-top: 15px;" oninput="updatePyroWind()">
+            </div>
+        </div>
+
+        <style>
+            .iem-wrapper {
+                background: #000;
+                border: 2px solid #222;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .iem-spatial-stage {
+                width: 100%; height: 260px; background: #050505; border-radius: 8px;
+                position: relative; overflow: hidden; border: 1px solid #1a1a24;
+                touch-action: none; /* Crucial for dragging */
+            }
+
+            /* Artist Head */
+            .iem-head {
+                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                width: 60px; height: 80px; border: 2px solid #444; border-radius: 30px;
+                display: flex; justify-content: center; align-items: center; background: #111;
+            }
+            .iem-head::before { content: 'FRONT'; position: absolute; top: -15px; font-family: var(--font-data); font-size: 8px; color: #555; }
+            /* Left/Right Ears */
+            .iem-ear { position: absolute; top: 50%; transform: translateY(-50%); width: 8px; height: 20px; background: #222; border-radius: 4px; }
+            .ear-l { left: -6px; border-left: 2px solid var(--cyan-neon); }
+            .ear-r { right: -6px; border-right: 2px solid var(--gold-primary); }
+
+            /* Draggable Audio Sources */
+            .iem-node {
+                position: absolute; padding: 6px 10px; background: #1a1a1a; border: 1px solid #555;
+                border-radius: 15px; font-family: var(--font-tech); font-size: 9px; font-weight: bold; color: #fff;
+                cursor: grab; display: flex; align-items: center; gap: 5px; z-index: 10; box-shadow: 0 5px 10px rgba(0,0,0,0.8);
+                transform: translate(-50%, -50%);
+            }
+            .iem-node i { color: var(--gold-primary); }
+            .iem-node:active { cursor: grabbing; border-color: var(--cyan-neon); background: #003344; }
+
+            .iem-meters {
+                display: flex; justify-content: space-between; align-items: center; margin-top: 15px;
+            }
+            
+            /* Audio Level Meters */
+            .level-meter-box { display: flex; align-items: center; gap: 10px; flex: 1; }
+            .lm-lbl { font-family: var(--font-tech); font-size: 14px; font-weight: 900; color: #888; }
+            .lm-track { height: 10px; flex: 1; background: #111; border-radius: 5px; position: relative; overflow: hidden; border: 1px solid #333;}
+            .lm-fill { position: absolute; top: 0; bottom: 0; width: 0%; transition: width 0.1s, background 0.1s; }
+            
+            /* Gradients for meters */
+            #fillL { left: 0; background: linear-gradient(90deg, #0055ff, var(--cyan-neon)); }
+            #fillR { right: 0; background: linear-gradient(-90deg, #ffaa00, var(--gold-primary)); transform-origin: right;}
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">IEM SPATIAL MIXER</h2>
+                <div class="section-icon"><i class="fas fa-headphones"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Drag instruments around the artist's head to create a binaural spatial mix. The AI calculates distance and stereo panning for the in-ear monitors.</p>
+
+            <div class="iem-wrapper">
+                <div class="iem-spatial-stage" id="iemWrap">
+                    <div class="iem-head">
+                        <div class="iem-ear ear-l"></div>
+                        <div class="iem-ear ear-r"></div>
+                    </div>
+
+                    <div class="iem-node" id="nodeVox" style="top: 20%; left: 50%;"><i class="fas fa-microphone"></i> VOCALS</div>
+                    <div class="iem-node" id="nodeClick" style="top: 70%; left: 20%;"><i class="fas fa-drum"></i> KICK</div>
+                    <div class="iem-node" id="nodeSynth" style="top: 50%; left: 80%;"><i class="fas fa-keyboard"></i> SYNTH</div>
+                </div>
+
+                <div class="iem-meters">
+                    <div class="level-meter-box" style="margin-right: 10px;">
+                        <span class="lm-lbl" style="color:var(--cyan-neon);">L</span>
+                        <div class="lm-track"><div class="lm-fill" id="fillL"></div></div>
+                    </div>
+                    <div class="level-meter-box">
+                        <div class="lm-track"><div class="lm-fill" id="fillR"></div></div>
+                        <span class="lm-lbl" style="color:var(--gold-primary);">R</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // --- 1. ACOUSTIC SPL HEATMAP AI LOGIC ---
+            const shCanvas = document.getElementById('splCanvas');
+            let shCtx = null;
+            const shWrap = document.getElementById('splWrap');
+            
+            // The physical nodes representing speakers
+            const shNodes = [
+                document.getElementById('splNode1'),
+                document.getElementById('splNode2'),
+                document.getElementById('splNode3')
+            ];
+            
+            let activeShNode = null;
+            let shAnimFrame = null;
+
+            function initSPLHeatmap() {
+                if(!shWrap || !shCanvas) return;
+                // Render at a slightly lower resolution and scale up to save massive CPU math
+                shCanvas.width = shWrap.clientWidth / 4;
+                shCanvas.height = shWrap.clientHeight / 4;
+                shCtx = shCanvas.getContext('2d');
+                renderHeatmap();
+            }
+            window.addEventListener('resize', initSPLHeatmap);
+            setTimeout(initSPLHeatmap, 500);
+
+            // Drag Logic for Speakers
+            shNodes.forEach(node => {
+                node.addEventListener('mousedown', shDragStart);
+                node.addEventListener('touchstart', (e) => { e.preventDefault(); shDragStart(e); }, {passive: false});
+            });
+
+            function shDragStart(e) {
+                if(typeof playTap === 'function') playTap();
+                activeShNode = e.currentTarget;
+            }
+
+            document.addEventListener('mousemove', shDragMove);
+            document.addEventListener('touchmove', shDragMove, {passive: false});
+
+            function shDragMove(e) {
+                if (!activeShNode) return;
+                e.preventDefault();
+                
+                const rect = shWrap.getBoundingClientRect();
+                const touch = e.type.includes('touch') ? e.touches[0] : e;
+                
+                let x = touch.clientX - rect.left;
+                let y = touch.clientY - rect.top;
+                
+                // Clamp
+                if(x < 10) x = 10; if(x > rect.width - 10) x = rect.width - 10;
+                if(y < 10) y = 10; if(y > rect.height - 10) y = rect.height - 10;
+
+                activeShNode.style.left = `${x}px`;
+                activeShNode.style.top = `${y}px`;
+
+                // Throttle rendering so dragging is smooth
+                if(!shAnimFrame) {
+                    shAnimFrame = requestAnimationFrame(() => {
+                        renderHeatmap();
+                        shAnimFrame = null;
+                    });
+                }
+            }
+
+            document.addEventListener('mouseup', () => activeShNode = null);
+            document.addEventListener('touchend', () => activeShNode = null);
+
+            function renderHeatmap() {
+                if(!shCtx) return;
+                const w = shCanvas.width;
+                const h = shCanvas.height;
+                const scale = 4; // Because we divided canvas resolution by 4
+
+                // Get current pixel coordinates of all speakers, scaled down to canvas resolution
+                const speakers = shNodes.map(node => {
+                    return {
+                        x: parseFloat(node.style.left) / scale,
+                        y: parseFloat(node.style.top) / scale
+                    };
+                });
+
+                // Image Data for pixel manipulation
+                const imgData = shCtx.createImageData(w, h);
+                const data = imgData.data;
+
+                // Physics Constants
+                const maxDbAtSource = 130; // Extremely loud
+                const pixelToMeter = 0.5; // Scale
+
+                for(let y = 0; y < h; y++) {
+                    for(let x = 0; x < w; x++) {
+                        // Calculate total SPL at this pixel
+                        let totalAcousticEnergy = 0;
+
+                        for(let i=0; i<speakers.length; i++) {
+                            const sx = speakers[i].x;
+                            const sy = speakers[i].y;
+                            
+                            // Distance in meters
+                            const distPx = Math.hypot(x - sx, y - sy);
+                            const distMeters = Math.max(1, distPx * pixelToMeter); // Prevent infinity
+                            
+                            // Inverse Square Law: SPL drops 6dB per doubling of distance.
+                            // SPL = SourceSPL - 20 * log10(distance)
+                            let spl = maxDbAtSource - (20 * Math.log10(distMeters));
+                            
+                            // Convert dB to acoustic energy (pressure squared) to sum them properly
+                            totalAcousticEnergy += Math.pow(10, spl / 10);
+                        }
+
+                        // Convert total energy back to dB
+                        let finalDb = 10 * Math.log10(totalAcousticEnergy);
+
+                        // Color Mapping (Red=110+, Green=95, Blue=80-)
+                        let r = 0, g = 0, b = 0, a = 255;
+
+                        if (finalDb >= 110) {
+                            r = 255; g = 0; b = 0; // Red
+                        } else if (finalDb >= 95) {
+                            // Blend Yellow to Red
+                            let pct = (finalDb - 95) / 15;
+                            r = 255; g = 255 * (1 - pct); b = 0;
+                        } else if (finalDb >= 80) {
+                            // Blend Green to Yellow
+                            let pct = (finalDb - 80) / 15;
+                            r = 255 * pct; g = 255; b = 0;
+                        } else {
+                            // Blend Blue to Cyan to Green
+                            let pct = (finalDb - 60) / 20; // Assuming 60 is lowest we care about
+                            if(pct < 0) pct = 0;
+                            r = 0; g = 255 * pct; b = 255 * (1 - pct);
+                            a = 200; // slightly transparent for quiet areas
+                        }
+
+                        const index = (y * w + x) * 4;
+                        data[index] = r;
+                        data[index+1] = g;
+                        data[index+2] = b;
+                        data[index+3] = a;
+                    }
+                }
+
+                shCtx.putImageData(imgData, 0, 0);
+            }
+
+
+            // --- 2. PYROTECHNIC FALLOUT DIRECTOR LOGIC ---
+            const pyCanvas = document.getElementById('pyroCanvas');
+            let pyCtx = null;
+            const pyWrap = document.getElementById('pyroWrap');
+            
+            let pyAnimFrame = null;
+            let pyParticles = [];
+            let pyWindShear = 0; // -50 to 50
+            let falloutData = []; // To track where particles hit the floor
+
+            function initPyroFallout() {
+                if(!pyWrap || !pyCanvas) return;
+                pyCanvas.width = pyWrap.clientWidth;
+                pyCanvas.height = pyWrap.clientHeight;
+                pyCtx = pyCanvas.getContext('2d');
+                
+                // Initialize fallout array (buckets across the width)
+                falloutData = new Array(Math.floor(pyCanvas.width / 5)).fill(0);
+                
+                if(!pyAnimFrame) animatePyro();
+            }
+            window.addEventListener('resize', initPyroFallout);
+            setTimeout(initPyroFallout, 800);
+
+            function updatePyroWind() {
+                pyWindShear = parseInt(document.getElementById('pyroWindSlider').value);
+                document.getElementById('pyroWindVal').innerText = `${(pyWindShear / 10).toFixed(1)} m/s`;
+                
+                // Wipe existing fallout map to recalculate based on new wind
+                falloutData.fill(0);
+            }
+
+            class PyroSpark {
+                constructor(cx, h) {
+                    this.x = cx;
+                    this.y = h - 20; // Emerge from machine
+                    
+                    // Shoot upward (fountain effect)
+                    this.vy = -(Math.random() * 8 + 8);
+                    this.vx = (Math.random() - 0.5) * 3; // Spread
+                    
+                    this.life = 1.0;
+                    this.mass = Math.random() * 0.5 + 0.5; // Affects how wind pushes it
+                }
+                update(wind, h) {
+                    // Wind Physics: Wind pushes X velocity. Lighter mass gets pushed more.
+                    const windForce = (wind / 50) * 0.3; // normalize slider
+                    this.vx += windForce / this.mass;
+                    
+                    // Gravity pulls down
+                    this.vy += 0.2 * this.mass;
+                    
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    
+                    this.life -= 0.005;
+
+                    // Hit the floor
+                    if(this.y >= h - 10) {
+                        this.life = 0;
+                        return {hit: true, x: this.x};
+                    }
+                    return {hit: false};
+                }
+                draw(ctx) {
+                    if(this.life <= 0) return;
+                    ctx.fillStyle = `rgba(255, ${Math.floor(this.life * 255)}, 0, ${this.life})`;
+                    ctx.fillRect(this.x, this.y, 2, 2);
+                }
+            }
+
+            function animatePyro() {
+                pyAnimFrame = requestAnimationFrame(animatePyro);
+                if(!pyCtx) return;
+
+                const w = pyCanvas.width;
+                const h = pyCanvas.height;
+
+                pyCtx.fillStyle = 'rgba(0,0,0,0.3)'; // Motion trail
+                pyCtx.fillRect(0,0, w, h);
+
+                // Spawn Particles (Continuous stream)
+                for(let i=0; i<3; i++) {
+                    pyParticles.push(new PyroSpark(w / 2, h));
+                }
+
+                // Update & Draw Sparks
+                let maxFalloutIndex = -1;
+                let maxFalloutVal = 0;
+
+                for(let i = pyParticles.length - 1; i >= 0; i--) {
+                    let p = pyParticles[i];
+                    let result = p.update(pyWindShear, h);
+                    p.draw(pyCtx);
+                    
+                    if(result.hit) {
+                        // Register hit in the fallout grid (5px buckets)
+                        let bucket = Math.floor(result.x / 5);
+                        if(bucket >= 0 && bucket < falloutData.length) {
+                            falloutData[bucket] += 1;
+                        }
+                    }
+                    
+                    if(p.life <= 0) pyParticles.splice(i, 1);
+                }
+
+                // Draw Fallout Zones on the floor
+                pyCtx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                for(let i=0; i<falloutData.length; i++) {
+                    if(falloutData[i] > 0) {
+                        // Decay the floor ash slowly so the zone shifts dynamically
+                        falloutData[i] *= 0.95; 
+                        
+                        // Draw red marker
+                        let height = Math.min(10, falloutData[i] * 0.5);
+                        pyCtx.fillRect(i * 5, h - 10 - height, 5, height);
+                        
+                        // Track worst zone for UI
+                        if(falloutData[i] > maxFalloutVal) {
+                            maxFalloutVal = falloutData[i];
+                            maxFalloutIndex = i;
+                        }
+                    }
+                }
+
+                // Update Safety UI
+                const badge = document.getElementById('pyroSafetyBadge');
+                
+                // If the fallout goes far to the sides (away from center bucket), it's dangerous
+                const centerBucket = Math.floor((w/2) / 5);
+                
+                if(maxFalloutIndex !== -1 && Math.abs(maxFalloutIndex - centerBucket) > 15) {
+                    badge.className = 'fallout-warning';
+                    badge.innerText = 'DANGER: OFF-STAGE DEBRIS';
+                    if(navigator.vibrate) navigator.vibrate(10);
+                } else {
+                    badge.className = 'fallout-safe';
+                    badge.innerText = 'ZONE CLEAR';
+                }
+            }
+
+
+            // --- 3. WIRELESS IEM SPATIALIZER LOGIC ---
+            const iemWrap = document.getElementById('iemWrap');
+            const iemNodes = document.querySelectorAll('.iem-node');
+            
+            let activeIemNode = null;
+
+            // Define Ear coordinates (Approximation based on CSS)
+            // Head is at 50% / 50%. Width 60px, Height 80px.
+            // Left Ear is roughly center Y, left edge.
+            
+            iemNodes.forEach(node => {
+                node.addEventListener('mousedown', iemDragStart);
+                node.addEventListener('touchstart', (e) => { e.preventDefault(); iemDragStart(e); }, {passive: false});
+            });
+
+            function iemDragStart(e) {
+                if(typeof playTap === 'function') playTap();
+                activeIemNode = e.currentTarget;
+            }
+
+            document.addEventListener('mousemove', iemDragMove);
+            document.addEventListener('touchmove', iemDragMove, {passive: false});
+
+            function iemDragMove(e) {
+                if (!activeIemNode) return;
+                e.preventDefault();
+                
+                const rect = iemWrap.getBoundingClientRect();
+                const touch = e.type.includes('touch') ? e.touches[0] : e;
+                
+                let x = touch.clientX - rect.left;
+                let y = touch.clientY - rect.top;
+                
+                // Clamp within bounds
+                if(x < 20) x = 20; if(x > rect.width - 20) x = rect.width - 20;
+                if(y < 20) y = 20; if(y > rect.height - 20) y = rect.height - 20;
+
+                activeIemNode.style.left = `${x}px`;
+                activeIemNode.style.top = `${y}px`;
+
+                calculateIemMix(rect.width, rect.height);
+            }
+
+            document.addEventListener('mouseup', () => activeIemNode = null);
+            document.addEventListener('touchend', () => activeIemNode = null);
+
+            function calculateIemMix(w, h) {
+                // Master mix levels
+                let totalLeft = 0;
+                let totalRight = 0;
+
+                const headX = w / 2;
+                const headY = h / 2;
+                // Rough ear positions relative to head center
+                const leftEarX = headX - 35;
+                const rightEarX = headX + 35;
+
+                iemNodes.forEach(node => {
+                    const nx = parseFloat(node.style.left);
+                    const ny = parseFloat(node.style.top);
+
+                    // Calculate distance to each ear
+                    const distL = Math.hypot(nx - leftEarX, ny - headY);
+                    const distR = Math.hypot(nx - rightEarX, ny - headY);
+
+                    // Physics: Volume decays with distance. 
+                    // Max effective distance ~ 150px.
+                    const maxDist = 150;
+                    
+                    // Normalized volume (0.0 to 1.0)
+                    let volL = Math.max(0, 1 - (distL / maxDist));
+                    let volR = Math.max(0, 1 - (distR / maxDist));
+
+                    // Add to master
+                    totalLeft += volL;
+                    totalRight += volR;
+                });
+
+                // Update UI Meters (Scale to percentage, max 3 nodes = 3.0)
+                let pctL = (totalLeft / iemNodes.length) * 100;
+                let pctR = (totalRight / iemNodes.length) * 100;
+                
+                if(pctL > 100) pctL = 100;
+                if(pctR > 100) pctR = 100;
+
+                document.getElementById('fillL').style.width = `${pctL}%`;
+                document.getElementById('fillR').style.width = `${pctR}%`;
+
+                // Subtly modulate Audio Engine master pan if active (Part 3 integration)
+                if(typeof stereoPanner !== 'undefined' && typeof isEngineOn !== 'undefined' && isEngineOn) {
+                    // Pan value -1 (Left) to 1 (Right)
+                    // Calculate based on the ratio of L vs R
+                    const total = totalLeft + totalRight;
+                    if(total > 0) {
+                        const panVal = (totalRight - totalLeft) / total;
+                        stereoPanner.pan.setTargetAtTime(panVal, actx.currentTime, 0.1);
+                    }
+                }
+            }
+            
+            // Initial calc
+            setTimeout(() => {
+                const rect = iemWrap.getBoundingClientRect();
+                calculateIemMix(rect.width, rect.height);
+            }, 500);
+
+        </script>
+        <style>
+            .swarm-wrapper {
+                background: #000;
+                border: 1px solid #1a2233;
+                border-radius: 12px;
+                padding: 15px;
+            }
+
+            .swarm-canvas-box {
+                width: 100%;
+                height: 300px;
+                background: radial-gradient(circle at bottom center, #0a1122 0%, #000 100%);
+                border: 2px solid var(--gold-primary);
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: inset 0 0 50px rgba(212, 175, 55, 0.1);
+            }
+            #swarmCanvas { width: 100%; height: 100%; display: block; mix-blend-mode: screen; }
+
+            .swarm-hud {
+                position: absolute; top: 10px; left: 10px; pointer-events: none; z-index: 5;
+                font-family: var(--font-tech); font-size: 10px; color: var(--gold-primary); letter-spacing: 2px;
+                text-shadow: 0 0 5px var(--gold-primary);
+            }
+
+            .swarm-controls {
+                display: flex; gap: 10px; margin-top: 15px;
+            }
+        </style>
+
+        <div class="app-section">
+            <div class="section-header">
+                <h2 class="section-title">DRONE SWARM AI</h2>
+                <div class="section-icon"><i class="fas fa-braille"></i></div>
+            </div>
+            <p style="font-family: var(--font-body); font-size: 11px; color: #888; margin-bottom: 15px;">Coordinate a synchronized aerial light show. The swarm uses complex flocking physics to form geometric shapes in the night sky.</p>
+
+            <div class="swarm-wrapper">
+                <div class="swarm-canvas-box" id="swarmWrap">
+                    <div class="swarm-hud">UAV SWARM: <span id="droneCountVal">0</span> ACTIVE</div>
+                    <canvas id="swarmCanvas"></canvas>
+                </div>
+
+                <div class="swarm-controls">
+                    <button class="app-btn-outline" style="flex: 1;" onclick="setSwarmTarget('scatter')">SCATTER</button>
+                    <button class="app-btn-outline" style="flex: 1; border-color: var(--cyan-neon); color: var(--cyan-neon);" onclick="setSwarmTarget('mnd')">FORM 'MND'</button>
+                    <button class="app-btn-outline" style="flex: 1; border-color: var(--gold-primary); color: var(--gold-primary);" onclick="setSwarmTarget('ring')">ORBIT</button>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .master-control-wrapper {
+                background: linear-gradient(45deg, #1a0000, #000);
+                border: 2px dashed var(--red-alert);
+                border-radius: 12px;
+                padding: 30px 15px;
+                text-align: center;
+                margin-top: 40px;
+                box-shadow: 0 0 50px rgba(255, 0, 0, 0.2);
+            }
+
+            .god-mode-btn {
+                width: 100%; padding: 20px; border-radius: 8px; border: 4px solid var(--red-alert);
+                background: #000; color: var(--red-alert); font-family: var(--font-tech); font-weight: 900;
+                font-size: 20px; letter-spacing: 5px; cursor: pointer; transition: 0.2s;
+                text-shadow: 0 0 10px var(--red-alert); box-shadow: inset 0 0 20px rgba(255,0,0,0.5);
+                user-select: none;
+            }
+            .god-mode-btn:active { transform: scale(0.95); background: var(--red-alert); color: #fff; }
+
+            /* Global God Mode Class applied to Body */
+            body.god-mode-active {
+                --cyan-neon: #ff00ff; /* Shift to aggressive magenta */
+                --gold-primary: #ff3300; /* Shift to blood red */
+                animation: godModeShake 0.1s infinite;
+            }
+            body.god-mode-active .app-wrapper { box-shadow: 0 0 100px rgba(255, 0, 0, 0.5); }
+            body.god-mode-active .glitch-text { animation: glitch 0.1s infinite; color: #fff; }
+            @keyframes godModeShake { 0% {transform: translate(1px, 1px);} 50% {transform: translate(-1px, -1px);} 100% {transform: translate(1px, -1px);} }
+
+            /* Full Screen Boot Terminal */
+            .terminal-overlay {
+                position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 999999;
+                display: none; flex-direction: column; padding: 20px;
+                font-family: 'Courier New', Courier, monospace; color: #00ff00; overflow: hidden;
+            }
+            .term-line { font-size: 12px; margin: 2px 0; text-shadow: 0 0 5px #00ff00; white-space: nowrap; }
+            .term-glitch { color: #fff; background: #00ff00; }
+            
+            .master-signature {
+                margin-top: 20px; font-family: var(--font-data); font-size: 10px; color: #555; text-transform: uppercase;
+            }
+        </style>
+
+        <div class="app-section">
+            <div class="master-control-wrapper">
+                <h2 class="section-title glitch-text" data-text="SYSTEM OVERRIDE" style="color:var(--red-alert); margin-bottom: 20px;">SYSTEM OVERRIDE</h2>
+                
+                <button class="god-mode-btn" onclick="toggleGodMode()" id="btnGodMode">
+                    ENGAGE GOD MODE
+                </button>
+
+                <button class="app-btn-outline" style="width: 100%; margin-top: 20px; border-color: #555; color: #888;" onclick="runMasterDiagnostics()">
+                    <i class="fas fa-terminal"></i> RUN MASTER DIAGNOSTICS
+                </button>
+
+                <div class="master-signature">
+                    ARCHITECT: LALU KUMAR TANTI<br>
+                    ENTITY: MAA NIRMALA DJ & TENT HOUSE<br>
+                    VERSION: 10.0.0 (FINAL)
+                </div>
+            </div>
+        </div>
+
+        <div class="terminal-overlay" id="masterTerminal">
+            <div id="termContent"></div>
+        </div>
+
+        <script>
+            // --- 1. AERO-SWARM DRONE LIGHT SHOW LOGIC ---
+            const swCanvas = document.getElementById('swarmCanvas');
+            let swCtx = null;
+            const swWrap = document.getElementById('swarmWrap');
+            
+            let swAnimFrame = null;
+            let drones = [];
+            const NUM_DRONES = 250;
+            let swarmTargetMode = 'scatter'; // scatter, mnd, ring
+
+            function initDroneSwarm() {
+                if(!swWrap || !swCanvas) return;
+                swCanvas.width = swWrap.clientWidth;
+                swCanvas.height = swWrap.clientHeight;
+                swCtx = swCanvas.getContext('2d');
+                
+                // Spawn drones randomly
+                for(let i=0; i<NUM_DRONES; i++) {
+                    drones.push({
+                        x: Math.random() * swCanvas.width,
+                        y: Math.random() * swCanvas.height,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        color: Math.random() > 0.5 ? 'var(--cyan-neon)' : 'var(--gold-primary)',
+                        tx: 0, ty: 0 // Target coords
+                    });
+                }
+                
+                document.getElementById('droneCountVal').innerText = NUM_DRONES;
+                generateMndTargets();
+                
+                if(!swAnimFrame) animateSwarm();
+            }
+            window.addEventListener('resize', initDroneSwarm);
+            setTimeout(initDroneSwarm, 1000);
+
+            // Pre-calculate target coordinates for the "MND" shape
+            let targetMND = [];
+            function generateMndTargets() {
+                targetMND = [];
+                if(!swCanvas) return;
+                const w = swCanvas.width;
+                const h = swCanvas.height;
+                const cx = w/2; const cy = h/2;
+                
+                // Very crude hardcoded coordinate logic to form letters M, N, D
+                // Letter M
+                for(let i=0; i<25; i++) { targetMND.push({x: cx-100, y: cy-30 + (i*3)}); } // L leg
+                for(let i=0; i<15; i++) { targetMND.push({x: cx-100+(i*2), y: cy-30+(i*2)}); } // L inner
+                for(let i=0; i<15; i++) { targetMND.push({x: cx-70+(i*2), y: cy-(i*2)}); } // R inner
+                for(let i=0; i<25; i++) { targetMND.push({x: cx-40, y: cy-30 + (i*3)}); } // R leg
+                
+                // Letter N
+                for(let i=0; i<25; i++) { targetMND.push({x: cx-10, y: cy-30 + (i*3)}); } // L leg
+                for(let i=0; i<25; i++) { targetMND.push({x: cx-10+(i*1.5), y: cy-30+(i*3)}); } // Diagonal
+                for(let i=0; i<25; i++) { targetMND.push({x: cx+30, y: cy-30 + (i*3)}); } // R leg
+
+                // Letter D
+                for(let i=0; i<25; i++) { targetMND.push({x: cx+60, y: cy-30 + (i*3)}); } // Spine
+                for(let i=0; i<30; i++) { 
+                    const angle = -Math.PI/2 + (i * (Math.PI/30));
+                    targetMND.push({x: cx+60 + Math.cos(angle)*30, y: cy+5 + Math.sin(angle)*35}); 
+                } // Curve
+                
+                // If we don't have enough targets for all drones, loop them
+                if(targetMND.length === 0) targetMND.push({x:cx, y:cy});
+            }
+
+            function setSwarmTarget(mode) {
+                if(typeof playTap === 'function') playTap();
+                if(navigator.vibrate) navigator.vibrate(20);
+                swarmTargetMode = mode;
+            }
+
+            function animateSwarm() {
+                swAnimFrame = requestAnimationFrame(animateSwarm);
+                if(!swCtx) return;
+
+                // Trail effect
+                swCtx.fillStyle = 'rgba(5, 10, 20, 0.3)';
+                swCtx.fillRect(0,0, swCanvas.width, swCanvas.height);
+
+                const w = swCanvas.width;
+                const h = swCanvas.height;
+                const cx = w/2; const cy = h/2;
+                const time = Date.now() * 0.001;
+
+                swCtx.globalCompositeOperation = 'lighter';
+
+                drones.forEach((d, i) => {
+                    // Determine Target based on Mode
+                    if(swarmTargetMode === 'scatter') {
+                        // Perlin-like wandering
+                        d.tx = d.x + Math.sin(time + i) * 50;
+                        d.ty = d.y + Math.cos(time + i*0.5) * 50;
+                        
+                        // Bounce off walls
+                        if(d.x < 0 || d.x > w) d.vx *= -1;
+                        if(d.y < 0 || d.y > h) d.vy *= -1;
+                    } 
+                    else if (swarmTargetMode === 'mnd') {
+                        // Go to specific coordinate in the MND array
+                        const t = targetMND[i % targetMND.length];
+                        d.tx = t.x;
+                        d.ty = t.y;
+                    }
+                    else if (swarmTargetMode === 'ring') {
+                        // Orbit the center
+                        const angle = time + (i * 0.1);
+                        const radius = 80 + Math.sin(time*2 + i) * 20;
+                        d.tx = cx + Math.cos(angle) * radius;
+                        d.ty = cy + Math.sin(angle) * radius;
+                    }
+
+                    // Physics Steering: Force = Target - Current
+                    const dx = d.tx - d.x;
+                    const dy = d.ty - d.y;
+                    const dist = Math.hypot(dx, dy);
+                    
+                    if(dist > 0) {
+                        const speed = swarmTargetMode === 'scatter' ? 0.02 : 0.08;
+                        d.vx += (dx / dist) * speed;
+                        d.vy += (dy / dist) * speed;
+                    }
+
+                    // Friction/Damping
+                    d.vx *= 0.92;
+                    d.vy *= 0.92;
+
+                    d.x += d.vx;
+                    d.y += d.vy;
+
+                    // Draw Drone
+                    swCtx.beginPath();
+                    swCtx.arc(d.x, d.y, 2, 0, Math.PI*2);
+                    swCtx.fillStyle = '#fff';
+                    swCtx.fill();
+                    
+                    // Glow
+                    swCtx.beginPath();
+                    swCtx.arc(d.x, d.y, 6, 0, Math.PI*2);
+                    swCtx.fillStyle = (swarmTargetMode === 'mnd' && dist < 5) ? 'rgba(0, 255, 0, 0.4)' : d.color;
+                    swCtx.fill();
+                });
+                
+                swCtx.globalCompositeOperation = 'source-over';
+            }
+
+
+            // --- 2. LALU'S GOD MODE LOGIC ---
+            let isGodMode = false;
+
+            function toggleGodMode() {
+                isGodMode = !isGodMode;
+                const btn = document.getElementById('btnGodMode');
+                
+                if(isGodMode) {
+                    if(navigator.vibrate) navigator.vibrate([500, 100, 500, 100, 1000]); // Massive earthquake
+                    document.body.classList.add('god-mode-active');
+                    btn.innerText = "GOD MODE: ACTIVE";
+                    btn.style.animation = "blink 0.1s infinite";
+                    
+                    // Auto-trigger everything
+                    if(typeof toggleAudioEngine === 'function' && !window.isEngineOn) toggleAudioEngine();
+                    if(typeof setSwarmTarget === 'function') setSwarmTarget('mnd');
+                    if(typeof fireSparks === 'function') fireSparks(true);
+                    
+                    // Push sliders to max visually
+                    document.querySelectorAll('.app-slider').forEach(s => {
+                        s.value = s.max;
+                        // Dispatch input event to trigger associated JS functions
+                        s.dispatchEvent(new Event('input'));
+                    });
+
+                    if(typeof triggerToast === 'function') triggerToast("WARNING: SYSTEM LIMITS OVERRIDDEN");
+                } else {
+                    if(navigator.vibrate) navigator.vibrate(50);
+                    document.body.classList.remove('god-mode-active');
+                    btn.innerText = "ENGAGE GOD MODE";
+                    btn.style.animation = "none";
+                    if(typeof fireSparks === 'function') fireSparks(false);
+                }
+            }
+
+
+            // --- 3. MASTER SYSTEM DIAGNOSTICS LOGIC ---
+            function runMasterDiagnostics() {
+                if(typeof playTap === 'function') playTap();
+                if(navigator.vibrate) navigator.vibrate(100);
+                
+                const term = document.getElementById('masterTerminal');
+                const content = document.getElementById('termContent');
+                term.style.display = 'flex';
+                content.innerHTML = '';
+                
+                document.body.style.overflow = 'hidden'; // Lock scrolling
+
+                const bootSequence = [
+                    "INITIATING MASTER BOOT SEQUENCE...",
+                    "KERNEL: MND_OS_v10.0.0",
+                    "AUTHORIZATION: LALU KUMAR TANTI (ADMIN)",
+                    "========================================",
+                    "Loading Audio DSP Engine... [OK]",
+                    "Loading 64-Bit FFT Visualizers... [OK]",
+                    "Booting Strobe Sequencers... [OK]",
+                    "Aligning Kirloskar DG Set Phase... [OK]",
+                    "Loading Art-Net DMX Topography... [OK]",
+                    "Calibrating Line-Array J-Curves... [OK]",
+                    "Engaging Class-4 Laser Interlocks... [OK]",
+                    "Injecting Cryo-Fluid Dynamics... [OK]",
+                    "Loading 3D Projection Mapping... [OK]",
+                    "Scanning Venue LiDAR Topography... [OK]",
+                    "Bypassing Thermal Throttling... [WARNING: OVERRIDE ENGAGED]",
+                    "========================================",
+                    "MEMORY ALLOCATION: 512/512 DMX CHANNELS",
+                    "PDU LOAD: 98% (BALANCED)",
+                    "NETWORK LATENCY: 0.1ms",
+                    "========================================",
+                    "ALL SYSTEMS NOMINAL.",
+                    "MAA NIRMALA DJ STAGE IS FULLY OPERATIONAL.",
+                    "HAVE A GREAT SHOW, LALU."
+                ];
+
+                let lineIndex = 0;
+                
+                function printNextLine() {
+                    if(lineIndex < bootSequence.length) {
+                        const line = document.createElement('div');
+                        line.className = 'term-line';
+                        
+                        // Add glitch effect randomly
+                        if(Math.random() > 0.8) line.classList.add('term-glitch');
+                        
+                        line.innerText = `> ${bootSequence[lineIndex]}`;
+                        content.appendChild(line);
+                        
+                        // Auto scroll to bottom
+                        term.scrollTop = term.scrollHeight;
+                        
+                        // Audio feedback per line
+                        if(typeof playSynth === 'function' && window.isEngineOn) playSynth('hihatC', null);
+                        
+                        lineIndex++;
+                        
+                        // Variable typing speed
+                        let delay = Math.random() * 50 + 20;
+                        if(lineIndex > 15) delay = 150; // Slow down at the end
+                        
+                        setTimeout(printNextLine, delay);
+                    } else {
+                        // Sequence Finished
+                        setTimeout(() => {
+                            if(navigator.vibrate) navigator.vibrate([200, 200, 200]);
+                            const btn = document.createElement('button');
+                            btn.className = 'god-mode-btn';
+                            btn.style.marginTop = '40px';
+                            btn.style.animation = 'none';
+                            btn.style.borderColor = '#00ff00';
+                            btn.style.color = '#00ff00';
+                            btn.innerText = "CLOSE TERMINAL";
+                            btn.onclick = () => {
+                                term.style.display = 'none';
+                                document.body.style.overflow = 'auto';
+                            };
+                            content.appendChild(btn);
+                        }, 1000);
+                    }
+                }
+                
+                setTimeout(printNextLine, 500);
+            }
+        </script>
+
+    </div> <footer style="text-align: center; padding: 40px 20px; font-family: var(--font-tech); font-size: 10px; color: #555; background: #000; border-top: 1px solid #111;">
+        <i class="fas fa-bolt" style="color: var(--gold-primary); font-size: 16px; margin-bottom: 10px;"></i><br>
+        MAA NIRMALA DJ & TENT HOUSE<br>
+        ENGINEERED BY LALU KUMAR TANTI<br>
+        &copy; 2026 BELTIKRI, KATORIA. ALL RIGHTS RESERVED.
+    </footer>
+
+</div> <script>
+    // Global resize trigger to ensure all 30 Canvas elements scale correctly when device rotates
+    window.addEventListener('resize', () => {
+        // Debounce resize
+        clearTimeout(window.globalResizeTimer);
+        window.globalResizeTimer = setTimeout(() => {
+            // Dispatch a custom event that individual modules could theoretically listen to,
+            // though most of our modules bind their own resize listeners directly.
+            window.dispatchEvent(new Event('mnd-global-resize'));
+        }, 200);
+    });
+
+    // Remove loading screen on full load
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('bootScreen');
+        if(loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+        }
+    });
+</script>
+
+</body>
+</html>
